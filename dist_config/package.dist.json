@@ -1,7 +1,7 @@
 {
-  "name": "chat-engines-online",
+  "name": "my-project-online",
   "version": "1.0.0",
-  "description": "A comprehensive platform of engines supporting diverse services with GUI support.",
+  "description": "A comprehensive platform of something related to anything.",
   "type": "module",
   "main": "balancer/index.js",
   "author": "Yaron Koresh",
