@@ -1,0 +1,60 @@
+<!-- Side Navigation Menu -->
+<nav class="side-nav" id="sideNav">
+    <div class="side-nav-header">
+        <a href="/{{LANGUAGE}}/index.html" class="logo-link">
+            <img src="/logo.svg" data-i18n-alt="common.logoAlt" alt="" class="side-nav-logo">
+            <span class="side-nav-title" data-i18n="common.siteName"></span>
+        </a>
+        <button class="side-nav-close" id="sideNavClose" data-i18n-title="common.closeMenu" title="">&times;</button>
+    </div>
+    <div class="side-nav-content">
+        <a href="/{{LANGUAGE}}/index.html" class="side-nav-link{{ACTIVE_INDEX}}" data-i18n="nav.homeWithIcon">
+            <span class="side-nav-icon">🏠</span>
+        </a>
+        <a href="/{{LANGUAGE}}/chats.html" class="side-nav-link{{ACTIVE_CHATS}}" data-i18n="nav.chatsWithIcon">
+            <span class="side-nav-icon">💬</span>
+        </a>
+        <a href="/{{LANGUAGE}}/about.html" class="side-nav-link{{ACTIVE_ABOUT}}" data-i18n="nav.aboutWithIcon">
+            <span class="side-nav-icon">ℹ️</span>
+        </a>
+        <a href="/{{LANGUAGE}}/docs.html" class="side-nav-link{{ACTIVE_DOCS}}" data-i18n="nav.documentationWithIcon">
+            <span class="side-nav-icon">📚</span>
+        </a>
+        <a href="/{{LANGUAGE}}/api-guide.html" class="side-nav-link{{ACTIVE_API_GUIDE}}" data-i18n="nav.apiGuideWithIcon">
+            <span class="side-nav-icon">🔌</span>
+        </a>
+        <a href="/{{LANGUAGE}}/pricing.html" class="side-nav-link{{ACTIVE_PRICING}}" data-i18n="nav.pricingWithIcon">
+            <span class="side-nav-icon">💰</span>
+        </a>
+        <a href="/{{LANGUAGE}}/contact.html" class="side-nav-link{{ACTIVE_CONTACT}}" data-i18n="nav.contactWithIcon">
+            <span class="side-nav-icon">✉️</span>
+        </a>
+    </div>
+    <div class="side-nav-footer">
+        <div class="side-nav-controls">
+            <div id="sideNavLangSelector"></div>
+            <button id="sideNavThemeToggle" class="btn-icon" data-i18n-title="common.toggleTheme" title="">☀️</button>
+        </div>
+    </div>
+</nav>
+
+<!-- Side Nav Overlay -->
+<div class="side-nav-overlay" id="sideNavOverlay"></div>
+
+<!-- Header -->
+<header class="header">
+    <div class="header-content">
+        <button class="hamburger-btn" id="hamburgerBtn" data-i18n-title="common.openMenu" title="">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <a href="/{{LANGUAGE}}/index.html" class="logo-link">
+            <img src="/logo.svg" data-i18n-alt="common.logoAlt" alt="" class="header-logo">
+            <h1 data-i18n="common.siteName"></h1>
+        </a>
+    </div>
+    <div class="header-actions">
+        <!-- Language selector will be inserted here by JavaScript -->
+    </div>
+</header>

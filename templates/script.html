@@ -1,0 +1,161 @@
+<script>
+    const sideNav = document.getElementById('sideNav');
+    const sideNavOverlay = document.getElementById('sideNavOverlay');
+    const hamburgerBtn = document.getElementById('hamburgerBtn');
+    const sideNavClose = document.getElementById('sideNavClose');
+    const sideNavThemeToggle = document.getElementById('sideNavThemeToggle');
+    
+    function openSideNav() {
+        sideNav.classList.add('open');
+        sideNavOverlay.classList.add('visible');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeSideNav() {
+        sideNav.classList.remove('open');
+        sideNavOverlay.classList.remove('visible');
+        document.body.style.overflow = '';
+    }
+    
+    hamburgerBtn.addEventListener('click', openSideNav);
+    sideNavClose.addEventListener('click', closeSideNav);
+    sideNavOverlay.addEventListener('click', closeSideNav);
+    
+    // Theme toggle functionality
+    function updateThemeIcons(isDark) {
+        const icon = isDark ? '🌙' : '☀️';
+        sideNavThemeToggle.textContent = icon;
+        if (sideNavThemeToggle) sideNavThemeToggle.textContent = icon;
+    }
+    
+    function toggleTheme() {
+        document.body.classList.toggle('dark-theme');
+        const isDark = document.body.classList.contains('dark-theme');
+        updateThemeIcons(isDark);
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    }
+    
+    sideNavThemeToggle.addEventListener('click', toggleTheme);
+
+    // Load saved theme
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+        document.body.classList.add('dark-theme');
+        updateThemeIcons(true);
+    } else {
+        updateThemeIcons(false);
+    }
+
+const LANGUAGES = {
+  en: {
+    code: "en",
+    name: "English",
+    nativeName: "English",
+    dir: "ltr",
+    flag: "US",
+  },
+  he: {
+    code: "he",
+    name: "Hebrew",
+    nativeName: "עברית",
+    dir: "rtl",
+    flag: "IL",
+  },
+};
+
+const setLanguage = function (langCode) {
+  if (!LANGUAGES[langCode]) {
+    console.error(`Language ${langCode} not supported`);
+    return;
+  }
+
+  let parts = window.location.href.split("/");
+  if(parts[3]){
+    parts[3] = langCode;
+  } else {
+    parts[3] = langCode + "/index.html";
+  }
+
+  window.location.href = parts.join("/");
+};
+
+const getLanguage = function () {
+  return window.location.href.split("/")[3] || "en";
+};
+
+const currentLanguage = getLanguage();
+
+const createLanguageSelector = function () {
+  const container = document.createElement("div");
+  container.id = "languageSelector";
+  container.className = "language-selector";
+
+  const currentLang = LANGUAGES[currentLanguage];
+
+  container.innerHTML = `
+        <button class="lang-btn btn-icon">
+            <img src="https://raw.githubusercontent.com/lipis/flag-icons/refs/heads/main/flags/1x1/${currentLang.flag.toLowerCase()}.svg" alt="Country Name" />
+            <span class="lang-code">${currentLang.code.toUpperCase()}</span>
+        </button>
+        <div class="lang-dropdown">
+            ${Object.values(LANGUAGES)
+              .map( lang => `
+                <button class="lang-option ${lang.code === currentLanguage ? "active" : ""}" data-lang="${lang.code}">
+                    <img src="https://raw.githubusercontent.com/lipis/flag-icons/refs/heads/main/flags/1x1/${lang.flag.toLowerCase()}.svg" alt="Country Name" />
+                    <span class="lang-name">${lang.nativeName}</span>
+                </button>
+              ` ).join("") }
+        </div>
+    `;
+
+  const btn= container.querySelector(".lang-btn");
+  const dropdown = container.querySelector(".lang-dropdown");
+
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    dropdown.classList.toggle("show");
+  });
+
+  container.querySelectorAll(".lang-option").forEach((option) => {
+    option.addEventListener("click", () => {
+      const langCode = option.dataset.lang;
+      setLanguage(langCode);
+    });
+  });
+
+  document.addEventListener("click", () => {
+    dropdown.classList.remove("show");
+  });
+
+  return container;
+};
+
+document.addEventListener("DOMContentLoaded", () => {
+  copyrightElem = document.querySelector(".footer-copyright");
+  copyrightElem.innerHTML = copyrightElem.innerHTML.replace("{{year}}", new Date().getFullYear());
+});
+
+const initLanguageSystem = function () {
+  const lang = getLanguageInfo();
+
+  document.documentElement.lang = currentLanguage;
+  document.documentElement.dir = lang.dir;
+  document.body.classList.toggle("rtl", lang.dir === "rtl");
+  document.body.classList.toggle("ltr", lang.dir === "ltr");
+
+  const headerActions = document.querySelector(".header-actions");
+  if (headerActions) {
+    const langSelector = createLanguageSelector();
+    headerActions.insertBefore(langSelector, headerActions.firstChild);
+  }
+
+  createLanguageSelector();
+};
+
+const getLanguageInfo = function () {
+  return LANGUAGES[currentLanguage];
+};
+
+initLanguageSystem();
+
+</script>

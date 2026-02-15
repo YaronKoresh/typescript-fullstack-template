@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "outDir": "dist/client"
+  },
+  "include": ["../src/types/*", "../src/client/**/*"],
+  "exclude": ["../src/server/**/*", "../src/balancer/**/*"]
+}

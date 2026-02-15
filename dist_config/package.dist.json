@@ -1,0 +1,20 @@
+{
+  "name": "chat-engines-online",
+  "version": "1.0.0",
+  "description": "A comprehensive platform of engines supporting diverse services with GUI support.",
+  "type": "module",
+  "main": "balancer/index.js",
+  "author": "Yaron Koresh",
+  "scripts": {
+    "start": "node balancer/index.js",
+    "build": "node -v"
+  },
+  "license": "UNLICENSED",
+  "private": true,
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "npm:@napi-rs/canvas@0.1.92"
+  }
+}

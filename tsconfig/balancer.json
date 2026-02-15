@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ESNext"],
+    "outDir": "dist/balancer"
+  },
+  "include": ["../src/types/*", "../src/balancer/**/*"],
+  "exclude": ["../src/client/**/*"]
+}

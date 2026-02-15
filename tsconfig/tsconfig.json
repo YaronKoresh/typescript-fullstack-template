@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "strict": false,
+    "allowSyntheticDefaultImports": true,
+    "types": [],
+    "noLib": false
+  },
+  "include": ["../src/**/*", "../test/**/*", "../scripts/**/*", "../tools/**/*"],
+  "exclude": ["../node_modules", "../dist"]
+}

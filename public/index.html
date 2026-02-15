@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="{{LANGUAGE}}">
+{{TEMPLATE:head}}
+<body>
+    <div id="app">
+        {{TEMPLATE:header}}
+
+        <!-- Main Content -->
+        <main class="main-content">
+
+            <!-- Why Chat Engines Section -->
+            <section class="why-section">
+                <h2 class="section-title" data-i18n="home.whyTitle"></h2>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">🔑</div>
+                        <h3 data-i18n="home.feature1Title"></h3>
+                        <p data-i18n="home.feature1Desc"></p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🔒</div>
+                        <h3 data-i18n="home.feature2Title"></h3>
+                        <p data-i18n="home.feature2Desc"></p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">⚡</div>
+                        <h3 data-i18n="home.feature3Title"></h3>
+                        <p data-i18n="home.feature3Desc"></p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🌐</div>
+                        <h3 data-i18n="home.feature4Title"></h3>
+                        <p data-i18n="home.feature4Desc"></p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Call-to-Action Section -->
+            <section class="cta-section">
+                <div class="cta-content">
+                    <h2 class="cta-title" data-i18n="home.ctaTitle"></h2>
+                    <p class="cta-subtitle" data-i18n="home.ctaSubtitle"></p>
+                    <div class="cta-buttons">
+                        <a href="/{{LANGUAGE}}/api-guide.html" class="btn btn-primary btn-xl" role="button">
+                            <span data-i18n="home.ctaStartBtn"></span>
+                            <span class="btn-arrow">→</span>
+                        </a>
+                    </div>
+                </div>
+            </section>
+        </main>
+        {{TEMPLATE:footer}}
+    </div>
+    {{TEMPLATE:script}}
+</body>
+</html>
