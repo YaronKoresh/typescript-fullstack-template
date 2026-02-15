@@ -20,7 +20,7 @@
   ],
   "scripts": {
     "fix-deps": "(node tools/fix-deps.js && npm install --ignore-scripts || (cd .))",
-    "fix-code": "npm run generate-types && npm run format:fix && npm run format:check && npm run lint:fix && npm run lint:check && npm run test && npm run coverage",
+    "fix-code": "npm run generate-types && npm run lint:fix && npm run lint:check && npm run format:fix && npm run format:check && npm run test && npm run coverage",
     "local": "npm run start --prefix ./dist",
     "build": "npm run build:bundle && npm run build:deps && npm run build:client",
     "prepare": "husky",
