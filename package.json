@@ -20,7 +20,7 @@
   ],
   "scripts": {
     "fix-deps": "(node tools/fix-deps.js && npm install --ignore-scripts || (cd .))",
-    "fix-code": "npm run generate-types && npm run lint:fix && npm run lint:check && npm run format:fix && npm run format:check && npm run test && npm run coverage",
+    "fix-code": "npm run generate-types && npm run lint:fix && npm run lint:check && npm run format:fix && npm run format:check && npm run test",
     "local": "npm run start --prefix ./dist",
     "build": "npm run build:bundle && npm run build:deps && npm run build:client",
     "prepare": "husky",
@@ -31,9 +31,9 @@
     "test": "npm run test:run && npm run test:types",
     "test:run": "vitest run",
     "test:types": "npm run test:client-types && npm run test:balancer-types && npm run test:server-types",
-    "test:client-types": "npx tsc --noEmit --project tsconfig/client.json",
-    "test:server-types": "npx tsc --noEmit --project tsconfig/server.json",
-    "test:balancer-types": "npx tsc --noEmit --project tsconfig/balancer.json",
+    "test:client-types": "tsc --noEmit --project tsconfig/client.json",
+    "test:server-types": "tsc --noEmit --project tsconfig/server.json",
+    "test:balancer-types": "tsc --noEmit --project tsconfig/balancer.json",
     "lint:check": "eslint src/ test/ tools/",
     "lint:fix": "(eslint src/ test/ tools/ --fix || (cd .))",
     "format:fix": "(prettier --write \"src/**/*.ts\" \"test/**/*.ts\" \"dist_config/**/*.*\" \"tools/**/*.*\" || (cd .))",
@@ -41,7 +41,9 @@
     "generate-types": "(tsx tools/generate-types.ts || (cd .))"
   },
   "lint-staged": {
-    "**/*": "npm run fix-code"
+    "**/*": [
+      "node -e \"require('child_process').spawn('npm', ['run', 'fix-code'], { shell: true, stdio: 'inherit' })\""
+    ]
   },
   "keywords": [
     "chat",

@@ -11,6 +11,6 @@
     "types": [],
     "noLib": false
   },
-  "include": ["../src/**/*", "../test/**/*", "../scripts/**/*", "../tools/**/*"],
+  "include": ["../src/**/*", "../test/**/*", "../tools/**/*"],
   "exclude": ["../node_modules", "../dist"]
 }
