@@ -71,7 +71,6 @@
     "@aws-sdk/client-s3": "npm:@aws-sdk/client-s3@3.985.0",
     "@napi-rs/canvas": "npm:@napi-rs/canvas@0.1.92",
     "archiver": "npm:archiver@7.0.1",
-    "chat-engines-online": "file:dist",
     "compression": "npm:compression@1.8.1",
     "dotenv": "npm:dotenv@17.2.3",
     "exceljs": "npm:exceljs@4.4.0",
@@ -88,7 +87,6 @@
   },
   "devDependencies": {
     "@eslint/js": "npm:@eslint/js@10.0.1",
-    "@railway/cli": "npm:@railway/cli@4.29.0",
     "@types/node": "npm:@types/node@25.2.0",
     "@vitest/coverage-v8": "npm:@vitest/coverage-v8@4.0.18",
     "axios": "npm:axios@1.13.5",
