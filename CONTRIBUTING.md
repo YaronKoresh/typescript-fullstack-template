@@ -15,7 +15,7 @@ To ensure consistency and reliability, the repository employs a rigorous suite o
 
 We utilize a two-tier script system to manage code quality. You are expected to utilize these commands frequently during development to ensure your code complies with project standards.
 
-* **Auto-Remediation (`npm run fix`)**
+* **Auto-Remediation**
 This is the primary command for local development. It executes the full suite of auto-fixers in the following order:
 1. **Dependency Fixes:** Resolves internal dependency issues via `fix-deps`.
 2. **Type Generation:** Regenerates necessary TypeScript definitions via `generate-types`.
@@ -23,10 +23,11 @@ This is the primary command for local development. It executes the full suite of
 4. **Linting:** Automatically fixes auto-correctable ESLint errors.
 
 ```bash
-npm run fix
+npm run fix-deps
+npm run fix-code
 ```
 
-* **Comprehensive Verification (`npm run check`)**
+* **Comprehensive Verification**
 This command simulates the Continuous Integration (CI) pipeline locally. It performs a read-only analysis to ensure zero violations:
 1. **Type Safety:** Runs strict TypeScript compilation checks (`test:types`) for client, server, and balancer configurations.
 2. **Linting Analysis:** Scans for code quality and security issues.
