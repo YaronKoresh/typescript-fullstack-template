@@ -1,12 +1,18 @@
-enhancement:
-  - head-branch: ['^feat', '^feature']
-  - changed-files: ['src/**/*.ts', 'src/**/*.js']
-
 bug:
-  - head-branch: ['^fix', '^bugfix']
+  - head-branch: ['^fix/', '^bug', '^bugfix', '^hotfix', '^patch']
+
+enhancement:
+  - head-branch: ['^feat/', '^feature', '^add', '^new']
 
 documentation:
-  - changed-files: ['*.md', 'docs/**']
-
-testing:
-  - changed-files: ['**/*.test.ts', '**/*.spec.ts']
+  - head-branch: ['^docs', '^document', '^doc/']
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*.md'
+      - '**/*.markdown'
+      - '**/*.txt'
+      - 'docs/**'
+      - 'LICENSE'
+      - 'CONTRIBUTING.md'
+      - 'mkdocs.yml'
+      - '**/*.rst'

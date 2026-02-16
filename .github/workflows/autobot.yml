@@ -24,7 +24,7 @@ jobs:
         uses: actions/labeler@v6
         with:
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
-          sync-labels: true
+          sync-labels: false
 
       - name: Manage Project
         uses: actions/github-script@v8
