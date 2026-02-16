@@ -28,6 +28,27 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 
+router.post("/upload-demo", upload.single("demoFile"), (req, res) => {
+  const file: MulterFile = req.file as MulterFile;
+
+  if (!file) {
+    return res.status(400).json({ error: "No file uploaded" });
+  }
+
+  if (fs.existsSync(file.path)) {
+    console.debug(`[Demo] File saved to temporary storage: ${file.path}`);
+  }
+
+  res.json({
+    message: "File uploaded successfully (Demo Mode)",
+    details: {
+      originalName: file.originalname,
+      mimeType: file.mimetype,
+      size: file.size,
+    },
+  });
+});
+
 setInterval((): void => {
   const oneHourAgo: number = Date.now() - 3600000;
   for (const [sessionId, session] of sessions.entries()) {

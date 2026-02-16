@@ -42,7 +42,9 @@
   },
   "lint-staged": {
     "**/*": [
-      "node -e \"require('child_process').spawn('npm', ['run', 'fix-code'], { shell: true, stdio: 'inherit' })\""
+      "node -e \"require('child_process').spawn('npm', ['run', 'fix-deps'], { shell: true, stdio: 'inherit' })\"",
+      "node -e \"require('child_process').spawn('npm', ['run', 'fix-code'], { shell: true, stdio: 'inherit' })\"",
+      "node -e \"require('child_process').spawn('npm', ['run', 'build'], { shell: true, stdio: 'inherit' })\""
     ]
   },
   "keywords": [

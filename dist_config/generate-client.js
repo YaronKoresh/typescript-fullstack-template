@@ -62,29 +62,39 @@ const replaceCssClasses = (htmlContent, cssMap) => {
 const replaceScriptTagsClasses = (htmlContent, cssMap) => {
   if (!cssMap || Object.keys(cssMap).length === 0) return htmlContent;
 
-  return htmlContent.replace(/<script[^>]*>([\s\S]*?)<\/script>/gi, (match, scriptContent) => {
-    
-    const processedScript = scriptContent.replace(/(["'])([^"'\\]*(?:\\.[^"'\\]*)*)\1/g, (fullMatch, quote, innerString, offset) => {
-      
-      const codeBefore = scriptContent.slice(Math.max(0, offset - 20), offset);
-      if (/getElementById\s*\(\s*$/.test(codeBefore)) return fullMatch;
+  return htmlContent.replace(
+    /<script\b[^>]*>([\s\S]*?)<\/script[^>]*>/gi,
+    (match, scriptContent) => {
+      const processedScript = scriptContent.replace(
+        /(["'])([^"'\\]*(?:\\.[^"'\\]*)*)\1/g,
+        (fullMatch, quote, innerString, offset) => {
+          const codeBefore = scriptContent.slice(
+            Math.max(0, offset - 20),
+            offset,
+          );
+          if (/getElementById\s*\(\s*$/.test(codeBefore)) return fullMatch;
 
-      if (innerString.trim().startsWith("#")) return fullMatch;
+          if (innerString.trim().startsWith("#")) return fullMatch;
 
-      const updatedString = innerString.replace(/([#.])?(\b[a-zA-Z0-9_-]+\b)/g, (m, prefix, name) => {
-        if (prefix === "#") return m;
-        
-        const mapped = cssMap[name];
-        if (prefix === ".") return mapped ? `.${mapped}` : m;
-        return mapped ? mapped : m;
-      });
+          const updatedString = innerString.replace(
+            /([#.])?(\b[a-zA-Z0-9_-]+\b)/g,
+            (m, prefix, name) => {
+              if (prefix === "#") return m;
 
-      return quote + updatedString + quote;
-    });
+              const mapped = cssMap[name];
+              if (prefix === ".") return mapped ? `.${mapped}` : m;
+              return mapped ? mapped : m;
+            },
+          );
 
-    const openTag = match.match(/^<script[^>]*>/i)[0];
-    return openTag + processedScript + "</script>";
-  });
+          return quote + updatedString + quote;
+        },
+      );
+
+      const openTag = match.match(/^<script[^>]*>/i)[0];
+      return openTag + processedScript + "</script>";
+    },
+  );
 };
 
 const translations = {};
