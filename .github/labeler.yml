@@ -1,0 +1,12 @@
+enhancement:
+  - head-branch: ['^feat', '^feature']
+  - changed-files: ['src/**/*.ts', 'src/**/*.js']
+
+bug:
+  - head-branch: ['^fix', '^bugfix']
+
+documentation:
+  - changed-files: ['*.md', 'docs/**']
+
+testing:
+  - changed-files: ['**/*.test.ts', '**/*.spec.ts']
