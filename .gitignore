@@ -6,7 +6,6 @@ node_modules/
 uploads/
 
 # Build outputs
-dist/
 build/
 lib/
 
