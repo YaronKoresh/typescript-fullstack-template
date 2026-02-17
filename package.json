@@ -5,6 +5,7 @@
   "type": "module",
   "main": "dist/balancer/index.js",
   "author": "Yaron Koresh",
+  "license": "SEE LICENSE IN ./LICENSE",
   "types": "dist/balancer/index.d.ts",
   "exports": {
     ".": {
@@ -49,8 +50,6 @@
     "typescript",
     "template"
   ],
-  "license": "UNLICENSED",
-  "private": true,
   "repository": {
     "type": "git",
     "url": "https://github.com/YaronKoresh/typescript.git"
