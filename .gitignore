@@ -8,6 +8,7 @@ uploads/
 # Build outputs
 build/
 lib/
+# dist/
 
 # Binaries
 bin/
@@ -40,12 +41,10 @@ tmp/
 temp/
 .cache/
 
-# Package lock files (keep package-lock.json if using npm)
-yarn.lock
-pnpm-lock.yaml
-
-# Documentation builds
-docs/api/
+# Package lock files
+# yarn.lock
+# pnpm-lock.yaml
+# package-lock.json
 
 # Fuzzing corpus and artifacts
 test/fuzzing/crashes/

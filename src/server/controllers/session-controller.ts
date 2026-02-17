@@ -1,9 +1,10 @@
 import fs from "node:fs";
 import os from "node:os";
-import path from "node:path";
 
 import express from "express";
 import multer, { type File as MulterFile } from "multer";
+
+import { MIME_TYPE_MAP } from "../constants.js";
 
 const router = express.Router();
 
@@ -16,10 +17,10 @@ const storage = multer.diskStorage({
   filename: function (_req, file, cb): void {
     const uniqueSuffix: string =
       Date.now() + "-" + Math.random().toString(36).substr(2, 9);
-    cb(
-      null,
-      file.fieldname + "-" + uniqueSuffix + path.extname(file.originalname),
-    );
+
+    const ext: string = MIME_TYPE_MAP[file.mimetype] || ".bin";
+
+    cb(null, file.fieldname + "-" + uniqueSuffix + ext);
   },
 });
 

@@ -1,8 +1,6 @@
 name: Check
 
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
 
@@ -11,7 +9,7 @@ permissions:
   pull-requests: write
 
 jobs:
-  quality-assurance:
+  check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -23,67 +21,16 @@ jobs:
 
       - run: npm ci
 
-      - run: npm run fix-code
+      - run: npm run check
 
-      - run: npm run build
-
-      - if: github.event_name == 'pull_request' && success()
+      - name: Check For Changes
+        id: check_changes
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-        shell: bash
         run: |
           if [ -z "$(git status --porcelain)" ]; then
             exit 0
           fi
-
-          PREVIOUS_REVIEWS=$(gh api "repos/${{ github.repository }}/pulls/$PR_NUMBER/reviews" --jq '.[] | select(.user.login=="github-actions[bot]") | .id')
-          for REVIEW_ID in $PREVIOUS_REVIEWS; do
-            gh api -X PUT "repos/${{ github.repository }}/pulls/$PR_NUMBER/reviews/$REVIEW_ID/dismissals" -f message="Superseded by new fixes" || true
-          done
-
-          python3 - <<'EOF'
-          import subprocess, json, os, re
-
-          def get_suggestions():
-              diff = subprocess.check_output(['git', 'diff', '-U0']).decode()
-              comments = []
-              files = re.split(r'^diff --git', diff, flags=re.M)
-              for f_content in files:
-                  if not f_content.strip(): continue
-                  file_match = re.search(r'^\+\+\+ b/(.*)', f_content, re.M)
-                  if not file_match: continue
-                  current_file = file_match.group(1)
-                  hunks = re.split(r'^@@', f_content, flags=re.M)
-                  for hunk in hunks[1:]:
-                      header, *lines = hunk.splitlines()
-                      match = re.search(r'\+(\d+)(?:,(\d+))?', header)
-                      if not match: continue
-                      new_start = int(match.group(1))
-                      new_len = int(match.group(2) or 1)
-                      suggested_code = [l[1:] for l in lines if l.startswith('+')]
-                      comments.append({
-                          "path": current_file,
-                          "side": "RIGHT",
-                          "line": new_start + new_len - 1,
-                          "start_line": new_start,
-                          "body": "```suggestion\n" + "\n".join(suggested_code) + "\n```"
-                      })
-              return comments
-
-          suggestions = get_suggestions()
-          if suggestions:
-              review = {
-                  "body": "Automated Fixes Applied: The following changes were verified by the build process. Review and commit them below.",
-                  "event": "COMMENT",
-                  "comments": suggestions
-              }
-              with open('review.json', 'w') as f:
-                  json.dump(review, f)
-          EOF
-
-          if [ -f review.json ]; then
-            gh api "repos/${{ github.repository }}/pulls/$PR_NUMBER/reviews" --input review.json
-          fi
-
           exit 1
