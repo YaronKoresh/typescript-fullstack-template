@@ -19,8 +19,8 @@
     "LICENSE"
   ],
   "scripts": {
-    "check": "npm run fix-deps && npm run fix-code && npm run build && npm run clean",
-    "clean": "node -e \"import { execSync } from 'child_process'; import fs from 'fs'; const paths = ['node_modules']; paths.forEach(p => fs.rmSync(p, { recursive: true, force: true })); execSync('npm cache clean --force', { stdio: 'inherit' })\"",
+    "check": "npm run fix-deps && npm run fix-code && npm run build",
+    "clean": "node -e \"import { execSync } from 'child_process'; import fs from 'fs'; const paths = ['./node_modules']; paths.forEach(p => fs.rmSync(p, { recursive: true, force: true })); execSync('npm cache clean --force', { stdio: 'inherit' })\"",
     "fix-deps": "(node tools/fix-deps.js && npm install --ignore-scripts || (cd .))",
     "fix-code": "npm run generate-types && npm run lint:fix && npm run lint:check && npm run format:fix && npm run format:check && npm run test",
     "build": "npm run build:bundle && npm run build:client",

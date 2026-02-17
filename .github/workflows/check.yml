@@ -23,6 +23,8 @@ jobs:
 
       - run: npm run check
 
+      - run: npm run clean
+
       - name: Check For Changes
         id: check_changes
         shell: bash
