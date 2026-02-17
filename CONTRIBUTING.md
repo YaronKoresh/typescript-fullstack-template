@@ -21,28 +21,19 @@ This is the primary command for local development. It executes the full suite of
 2. **Type Generation:** Regenerates necessary TypeScript definitions via `generate-types`.
 3. **Formatting:** Applies Prettier formatting rules to all files.
 4. **Linting:** Automatically fixes auto-correctable ESLint errors.
+5. **Unit Testing:** Executes Vitest suites with coverage reporting.
 
 ```bash
 npm run fix-deps
 npm run fix-code
-```
-
-* **Comprehensive Verification**
-This command simulates the Continuous Integration (CI) pipeline locally. It performs a read-only analysis to ensure zero violations:
-1. **Type Safety:** Runs strict TypeScript compilation checks (`test:types`) for client, server, and balancer configurations.
-2. **Linting Analysis:** Scans for code quality and security issues.
-3. **Format Verification:** Ensures strict adherence to Prettier style guides.
-4. **Unit Testing:** Executes Vitest suites with coverage reporting.
-
-```bash
-npm run check
+npm run build
 ```
 
 ### 1.3 Pre-Commit Enforcement (Husky)
 
 This repository protects the codebase through strict **Git Hooks** configured via Husky.
 
-* **Automatic Validation:** Upon attempting a commit, the system automatically triggers the `lint-staged` process, which runs the `npm run check` pipeline on your staged files.
+* **Automatic Validation:** Upon attempting a commit, the system automatically triggers the `lint-staged` process.
 * **Zero-Tolerance Policy:** Any commit that fails type checking, linting, formatting, or unit tests will be automatically rejected. **Do not bypass these hooks.**
 
 ## 2. Core Coding Standards & Architecture
@@ -112,7 +103,7 @@ Use the **kebab-case naming** branch convention:
 Before submitting a PR, ensure the following criteria are met:
 
 1. **Sync:** Ensure your branch is up-to-date with the upstream `main` branch.
-2. **Verification:** Run `npm run check` locally to confirm all tests and linting rules pass.
+2. **Verification:** Run `npm run fix-deps && npm run fix-code && npm run build` locally to confirm your branch compatibility.
 3. **Linkage:** Clearly reference the issue IDs being addressed in the description (e.g., "Fixes #142").
 
 ---
