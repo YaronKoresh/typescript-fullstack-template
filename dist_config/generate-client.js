@@ -97,7 +97,10 @@ const replaceScriptTagsClasses = (htmlContent, cssMap) => {
   );
 };
 
-const translations = {};
+const translations = {
+  en: {},
+  he: {},
+};
 
 const langs = [...Object.keys(translations)];
 
@@ -114,7 +117,7 @@ const embedTranslation = function (html, lang) {
           .reduce(
             (obj, key) => (obj && obj[key] ? obj[key] : null),
             translations[lang],
-          ) || path
+          ) || `Error: No translation for ${path}`
       );
     } catch (err) {
       return path;
@@ -174,7 +177,7 @@ const loadTemplate = function (templateName) {
 };
 
 const preloadTemplates = function () {
-  const templates = ["head", "nav", "header", "footer", "script"];
+  const templates = ["head", "header", "footer", "script"];
   if (fs.existsSync(TEMPLATES_DIR)) {
     for (const template of templates) {
       loadTemplate(template);
@@ -187,7 +190,7 @@ const processTemplatePartials = function (pageName) {
   let pagePath = path.join(STATIC_DIR, pageName);
   let processed = fs.readFileSync(pagePath, "utf8");
 
-  const partials = ["head", "nav", "header", "footer", "script"];
+  const partials = ["head", "header", "footer", "script"];
   for (const partial of partials) {
     const template = loadTemplate(partial);
     if (template) {
@@ -327,12 +330,7 @@ const processHtmlTemplateWithJs = async function (pageName, cssMap) {
 
       const navPages = {
         "index.html": "INDEX",
-        "chats.html": "CHATS",
-        "about.html": "ABOUT",
-        "docs.html": "DOCS",
-        "api-guide.html": "API_GUIDE",
-        "pricing.html": "PRICING",
-        "contact.html": "CONTACT",
+        "api-guide.html": "CHATS",
       };
 
       for (const [file, key] of Object.entries(navPages)) {
