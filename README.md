@@ -73,7 +73,7 @@ To set up a local development or production instance, execute the following comm
 
 1. **Clone the Repository**:
 ```bash
-git clone https://github.com/YaronKoresh/my-repo.git
+git clone https://github.com/my-username/my-repo.git
 cd my-repo
 ```
 
@@ -106,12 +106,12 @@ npm run build
 ```
 
 2. **Start the Server**:
-Launch the production instance of the Chat Engines server:
+Launch the production balancer:
 ```bash
-npm run server
+npm run local
 ```
 
-For active development, you may utilize `npm run fix-deps` and `npm run fix-code` to ensure your local changes adhere to the project's strict architectural and formatting standards before attempting a commit.
+For active development, you may utilize `npm run check` to ensure your local changes adhere to the project's strict architectural and formatting standards before attempting a commit.
 
 ---
 
@@ -137,8 +137,7 @@ The codebase is partitioned into distinct functional zones to ensure logic isola
 
 Adherence to the following quality assurance workflows is mandatory for all development activities:
 
-* **Automated Remediation (`npm run fix-deps` and `npm run fix-code`)**: This command executes a comprehensive repair sequence, including internal dependency resolution via `fix-deps`, TypeScript definition regeneration, and strict Prettier/ESLint auto-formatting.
-* **Strict Verification (`npm run check`)**: This protocol simulates the CI pipeline locally. It performs a read-only analysis of type safety, code quality, and unit test coverage to ensure the codebase remains in a deployable state.
+* **Automated Remediation (`npm run check`)**: This command executes a comprehensive repair sequence, including internal dependency resolution via `fix-deps`, TypeScript definition regeneration, and strict Prettier/ESLint auto-formatting.
 * **Pre-Commit Enforcement**: The repository utilizes Husky to trigger `lint-staged` verification. Any commit that violates formatting, typing, or testing standards is automatically rejected.
 
 ### 4.4. Documentation References
@@ -150,21 +149,4 @@ For detailed technical specifications, refer to the internal documentation suite
 
 ---
 
-## 5. Legal & Licensing
-
-### 5.1. License
-
-Copyright © 2026. **All Rights Reserved.**
-
-(If Proprietary: This software and its associated documentation are proprietary. Unauthorized copying, modification, distribution, or reverse engineering of this repository is strictly prohibited. While the platform utilizes a "Bring Your Own Key" (BYOK) model for API services, the orchestration logic, internal API schemas, and specialized engine configurations remain the exclusive intellectual property of the project maintainers.)
-
----
-
-### 5.2. Disclaimer
-
-(An example: The TypeScript Template Platform utilizes Large Language Models (LLMs) and generative Artificial Intelligence to provide analysis, code, and content.)
-
-* **Accuracy of Output**: AI-generated content may contain inaccuracies, logical errors, or "hallucinations".
-* **Professional Responsibility**: All outputs should be treated as drafts or advisory starting points. Users are solely responsible for verifying the technical, legal, or financial accuracy of any AI-generated material before implementation in a professional environment.
-* **No Warranty**: The software is provided "as is", without warranty of any kind, express or implied, including but not limited to the warranties of merchantability or fitness for a particular purpose.
-* **Third-Party Terms**: Usage of this platform is subject to the policies of the individual API providers configured by the user.
+**License:** [UCSL-1.0](./LICENSE).
