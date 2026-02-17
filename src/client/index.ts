@@ -1,8 +1,4 @@
-import {
-  STORAGE_KEY,
-  HISTORY_KEY,
-  MAX_MESSAGES_PER_TAB,
-} from "./constants";
+import { HISTORY_KEY, MAX_MESSAGES_PER_TAB, STORAGE_KEY } from "./constants";
 import * as styles from "./styles.module.css";
 import { Example } from "./types";
 
@@ -12,7 +8,6 @@ const state: {
   sidebarVisible: boolean;
   sideNavVisible: boolean;
   theme: string;
-  currentCategoryFilters: any[];
   tabs: any[];
   activeTabId: any;
   tabIdCounter: number;
@@ -81,14 +76,11 @@ const getCurrentLanguage = function (): string {
   return window.location.href.split("/")[3];
 };
 
-const init = async function (): Promise<void> {
-  hideLoading();
-
-  window.addEventListener("languageChanged", (): void => {
-  });
-};
-
-const downloadFile = (content, filename, mimeType): void => {
+const downloadFile = (
+  content: any,
+  filename: string,
+  mimeType: string,
+): void => {
   const blob: Blob = new Blob([content], { type: mimeType });
   const url: string = URL.createObjectURL(blob);
   const a: HTMLAnchorElement = document.createElement("a");
@@ -100,7 +92,34 @@ const downloadFile = (content, filename, mimeType): void => {
   URL.revokeObjectURL(url);
 };
 
-document.addEventListener("DOMContentLoaded", init);
+const hideLoading = (): void => {
+  elements.loadingOverlay.classList.add("hidden");
+};
 
-if (typeof window !== "undefined") {
-}
+const init = async function (): Promise<void> {
+  console.debug(`Initializing with ${MAX_MESSAGES_PER_TAB} max messages.`);
+  console.debug(`Storage Keys: ${STORAGE_KEY}, ${HISTORY_KEY}`);
+  console.debug("Current State:", state);
+
+  console.debug("Styles loaded:", Object.keys(styles).length > 0);
+  console.debug(
+    "UI Elements initialized:",
+    elements.chatView ? "Success" : "Failed",
+  );
+
+  const demoTypeCheck: Example = { demo: true };
+  console.debug("Example type instance:", demoTypeCheck);
+
+  console.debug("Language context detected:", getCurrentLanguage());
+  console.debug(
+    "Download utility is ready:",
+    typeof downloadFile === "function",
+  );
+
+  hideLoading();
+  window.addEventListener("languageChanged", (): void => {
+    void 0;
+  });
+};
+
+document.addEventListener("DOMContentLoaded", init);
