@@ -1,0 +1,14 @@
+{
+  "name": "ajv-shim",
+  "version": "1.0.0",
+  "description": "Shim to bridge ESLint (ajv v6 expectations) with Ajv v8",
+  "type": "module",
+  "dependencies": {
+    "ajv": "npm:ajv@8.18.0"
+  },
+  "main": "./index.cjs",
+  "exports": {
+    ".": "./index.cjs",
+    "./lib/refs/json-schema-draft-04.json": "./draft-04.json"
+  }
+}

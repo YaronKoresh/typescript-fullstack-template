@@ -79,8 +79,9 @@
     "@eslint/js": "npm:@eslint/js@10.0.1",
     "@types/node": "npm:@types/node@25.2.0",
     "@vitest/coverage-v8": "npm:@vitest/coverage-v8@4.0.18",
+    "ajv": "file:./shim/ajv-shim",
     "axios": "npm:axios@1.13.5",
-    "eslint": "npm:eslint@9.39.2",
+    "eslint": "npm:eslint@10.0.0",
     "eslint-config-prettier": "npm:eslint-config-prettier@10.1.8",
     "eslint-plugin-import-x": "npm:eslint-plugin-import-x@4.16.1",
     "eslint-plugin-n": "npm:eslint-plugin-n@17.23.2",
@@ -104,6 +105,9 @@
     "vitest": "npm:vitest@4.0.18"
   },
   "overrides": {
+    "eslint": {
+      "ajv": "file:./shim/ajv-shim"
+    },
     "express-rate-limit": {
       "express": "5.2.1"
     },

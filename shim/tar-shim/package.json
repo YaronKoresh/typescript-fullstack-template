@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "dependencies": {
-    "tar": "npm:tar@^7.5.7" 
+    "tar": "npm:tar@7.5.9"
   },
   "main": "index.js"
 }
