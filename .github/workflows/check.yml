@@ -31,13 +31,14 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           git config core.fileMode false
+          git add . --renormalize
 
-          if ! git diff --exit-code --ignore-all-space; then
+          if ! git diff --exit-code -w --ignore-submodules; then
             echo "❌ Changes detected in the following files:"
             git status --porcelain
             
             echo -e "\n--- Detailed Diff ---"
-            git diff
+            git diff -w
             
             exit 1
           else
