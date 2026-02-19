@@ -113,6 +113,20 @@
     },
     "express": {
       "qs": "6.14.2"
+    },
+    "@ts-morph/common": {
+      "minimatch": "file:./shim/minimatch-shim"
+    },
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "file:./shim/minimatch-shim"
+    },
+    "readdir-glob": {
+      "minimatch": "file:./shim/minimatch-shim"
+    },
+    "archiver-utils": {
+      "glob": {
+        "minimatch": "file:./shim/minimatch-shim"
+      }
     }
   }
 }

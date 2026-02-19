@@ -1,0 +1,15 @@
+{
+  "name": "minimatch-shim",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "minimatch": "npm:minimatch@10.2.1"
+  },
+  "main": "./index.cjs",
+  "exports": {
+    ".": {
+      "import": "./index.js",
+      "require": "./index.cjs"
+    }
+  }
+}
