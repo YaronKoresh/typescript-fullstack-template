@@ -52,7 +52,7 @@ echo.
 echo     [0]  Exit
 echo.
 echo  -----------------------------------------------------------
-set /p "CAT=  Select a category [0-11]: "
+set "CAT=" & set /p "CAT=  Select a category [0-11]: "
 
 if "!CAT!"=="1" goto CatQuick
 if "!CAT!"=="2" goto CatStart
@@ -97,7 +97,7 @@ echo     [14] Download and test a pull request
 echo.
 echo     [0]  Back to main menu
 echo.
-set /p "QCH=  Select an option [0-14]: "
+set "QCH=" & set /p "QCH=  Select an option [0-14]: "
 
 if "!QCH!"=="1" goto DoQuickSaveUpload
 if "!QCH!"=="2" goto DoQuickGetLatest
@@ -132,7 +132,7 @@ echo.
 echo  Your current changes:
 call git status --short
 echo.
-set /p "QSAVE_MSG=  Describe what you changed: "
+set "QSAVE_MSG=" & set /p "QSAVE_MSG=  Describe what you changed: "
 echo.
 echo  [Step 1/4] Marking all changes...
 call git add -A
@@ -189,7 +189,7 @@ echo.
 for /f "delims=" %%I in ('git rev-parse --abbrev-ref HEAD 2^>nul') do set "CURRENT_BRANCH=%%I"
 echo  You are currently on: !CURRENT_BRANCH!
 echo.
-set /p "QFEAT_NAME=  Give your new feature a short name (no spaces): "
+set "QFEAT_NAME=" & set /p "QFEAT_NAME=  Give your new feature a short name (no spaces): "
 echo.
 echo  [Step 1/2] Creating new branch '!QFEAT_NAME!'...
 call git checkout -b "!QFEAT_NAME!"
@@ -218,7 +218,7 @@ set "FEATURE_BRANCH=!CURRENT_BRANCH!"
 echo  You are currently on: !FEATURE_BRANCH!
 echo.
 set "QFIN_TARGET=main"
-set /p "QFIN_TARGET=  Which branch should receive your work? (press Enter for 'main'): "
+set "QFIN_TARGET=" & set /p "QFIN_TARGET=  Which branch should receive your work? (press Enter for 'main'): "
 echo.
 echo  [Step 1/6] Saving any unsaved changes on '!FEATURE_BRANCH!'...
 call git add -A
@@ -239,7 +239,7 @@ if errorlevel 1 (
 echo  [Step 5/6] Uploading the combined work...
 call git push origin "!QFIN_TARGET!"
 echo  [Step 6/6] Cleaning up the feature branch...
-set /p "QFIN_CLEANUP=  Delete the feature branch '!FEATURE_BRANCH!'? (Y/N): "
+set "QFIN_CLEANUP=" & set /p "QFIN_CLEANUP=  Delete the feature branch '!FEATURE_BRANCH!'? (Y/N): "
 if /I "!QFIN_CLEANUP!"=="Y" (
     call git branch -d "!FEATURE_BRANCH!"
     call git push origin --delete "!FEATURE_BRANCH!" 2>nul
@@ -285,7 +285,7 @@ echo.
 echo  Current changes that will be erased:
 call git status --short
 echo.
-set /p "QUNDO_CONFIRM=  This CANNOT be undone. Erase all changes? (Y/N): "
+set "QUNDO_CONFIRM=" & set /p "QUNDO_CONFIRM=  This CANNOT be undone. Erase all changes? (Y/N): "
 if /I "!QUNDO_CONFIRM!"=="Y" (
     call git restore .
     call git clean -fd
@@ -307,14 +307,14 @@ echo  ===========================================================
 echo.
 echo  Git needs your name and email to label your saves.
 echo.
-set /p "QID_NAME=  Your name: "
-set /p "QID_EMAIL=  Your email: "
+set "QID_NAME=" & set /p "QID_NAME=  Your name: "
+set "QID_EMAIL=" & set /p "QID_EMAIL=  Your email: "
 echo.
 echo  Where should this apply?
 echo     [1]  Only this project
 echo     [2]  All projects on this computer
 echo.
-set /p "QID_SCOPE=  Select: "
+set "QID_SCOPE=" & set /p "QID_SCOPE=  Select: "
 if "!QID_SCOPE!"=="2" (
     call git config --global user.name "!QID_NAME!"
     call git config --global user.email "!QID_EMAIL!"
@@ -343,7 +343,7 @@ echo.
 echo  Your current changes:
 call git status --short
 echo.
-set /p "QLOCAL_MSG=  Describe what you changed: "
+set "QLOCAL_MSG=" & set /p "QLOCAL_MSG=  Describe what you changed: "
 echo.
 echo  [Step 1/2] Marking all changes...
 call git add -A
@@ -366,8 +366,8 @@ echo.
 echo  This will mark the current state of your project with a
 echo  version number and upload it to the cloud.
 echo.
-set /p "QREL_VER=  Version name (e.g. v1.0.0): "
-set /p "QREL_MSG=  Describe this release: "
+set "QREL_VER=" & set /p "QREL_VER=  Version name (e.g. v1.0.0): "
+set "QREL_MSG=" & set /p "QREL_MSG=  Describe this release: "
 echo.
 echo  [Step 1/2] Creating version tag...
 call git tag -a "!QREL_VER!" -m "!QREL_MSG!"
@@ -388,8 +388,8 @@ echo  ===========================================================
 echo.
 echo  This will download a complete copy of a project from the cloud.
 echo.
-set /p "QDLURL=  Paste the project URL: "
-set /p "QDLDIR=  Folder name (or press Enter for default): "
+set "QDLURL=" & set /p "QDLURL=  Paste the project URL: "
+set "QDLDIR=" & set /p "QDLDIR=  Folder name (or press Enter for default): "
 if "!QDLDIR!"=="" (
     call git clone "!QDLURL!"
 ) else (
@@ -412,14 +412,14 @@ echo  Recent save points:
 call git log -5 --oneline
 echo.
 set "QUC_COMMIT=HEAD"
-set /p "QUC_COMMIT=  Enter commit ID to undo (press Enter for last save): "
+set "QUC_COMMIT=" & set /p "QUC_COMMIT=  Enter commit ID to undo (press Enter for last save): "
 echo.
 echo  What do you want to do?
 echo     [1]  Undo that save (keep my changes, I'll redo it)
 echo     [2]  Erase that save from history (for secrets/sensitive data)
 echo     [3]  Remove a specific file from that save
 echo.
-set /p "QUC_CH=  Select: "
+set "QUC_CH=" & set /p "QUC_CH=  Select: "
 if "!QUC_CH!"=="1" goto DoUndoKeep
 if "!QUC_CH!"=="2" goto DoUndoErase
 if "!QUC_CH!"=="3" goto DoUndoFile
@@ -447,7 +447,7 @@ goto CatQuick
 
 :DoUndoErase
 echo.
-set /p "QUC_CONFIRM=  This will PERMANENTLY erase the commit from history. Continue? (Y/N): "
+set "QUC_CONFIRM=" & set /p "QUC_CONFIRM=  This will PERMANENTLY erase the commit from history. Continue? (Y/N): "
 if /I not "!QUC_CONFIRM!"=="Y" (
     echo  Cancelled. Nothing was changed.
     echo.
@@ -465,7 +465,7 @@ echo.
 echo  Files in that save point:
 call git diff --name-only !QUC_COMMIT!~1 !QUC_COMMIT!
 echo.
-set /p "QUC_FILE=  Enter file path to remove from that save: "
+set "QUC_FILE=" & set /p "QUC_FILE=  Enter file path to remove from that save: "
 echo.
 echo  [Step 1/3] Undoing save point...
 for /f "delims=" %%M in ('git log -1 --format^=%%s !QUC_COMMIT!') do set "QUC_MSG=%%M"
@@ -496,12 +496,12 @@ echo  Recent save points:
 call git log -5 --oneline
 echo.
 set "QSPLIT_COMMIT=HEAD"
-set /p "QSPLIT_COMMIT=  Enter commit ID to split from (press Enter for last save): "
+set "QSPLIT_COMMIT=" & set /p "QSPLIT_COMMIT=  Enter commit ID to split from (press Enter for last save): "
 echo.
 echo  Files that were in that save:
 call git diff --name-only !QSPLIT_COMMIT!~1 !QSPLIT_COMMIT!
 echo.
-set /p "QSPLIT_CONFIRM=  Undo that save and start splitting? (Y/N): "
+set "QSPLIT_CONFIRM=" & set /p "QSPLIT_CONFIRM=  Undo that save and start splitting? (Y/N): "
 if /I not "!QSPLIT_CONFIRM!"=="Y" (
     echo  Cancelled.
     echo.
@@ -525,7 +525,7 @@ echo    ALL   = include all remaining files in this save
 echo    DONE  = finish (leave remaining files unsaved for now)
 echo.
 :SplitAddFile
-set /p "QSPLIT_FILE=  File name (or ALL/DONE): "
+set "QSPLIT_FILE=" & set /p "QSPLIT_FILE=  File name (or ALL/DONE): "
 if /I "!QSPLIT_FILE!"=="DONE" (
     echo.
     echo  Finished splitting! Some files may still be unsaved.
@@ -542,10 +542,10 @@ echo.
 echo  Currently marked for this save:
 call git diff --cached --name-only
 echo.
-set /p "QSPLIT_MORE=  Add another file to THIS save? (Y/N): "
+set "QSPLIT_MORE=" & set /p "QSPLIT_MORE=  Add another file to THIS save? (Y/N): "
 if /I "!QSPLIT_MORE!"=="Y" goto SplitAddFile
 echo.
-set /p "QSPLIT_MSG=  Describe this group of changes: "
+set "QSPLIT_MSG=" & set /p "QSPLIT_MSG=  Describe this group of changes: "
 call git commit -m "!QSPLIT_MSG!"
 echo.
 echo  Save point created!
@@ -563,7 +563,7 @@ if "!HAS_REMAINING!"=="1" (
 )
 echo  All files have been saved! You're done.
 echo.
-set /p "QSPLIT_SYNC=  Do you want to upload these split saves and overwrite the cloud? (Y/N): "
+set "QSPLIT_SYNC=" & set /p "QSPLIT_SYNC=  Do you want to upload these split saves and overwrite the cloud? (Y/N): "
 if /I "!QSPLIT_SYNC!"=="Y" (
     for /f "delims=" %%I in ('git rev-parse --abbrev-ref HEAD 2^>nul') do set "CURRENT_BRANCH=%%I"
     echo  Force-updating the cloud with your split saves...
@@ -588,10 +588,10 @@ echo.
 for /f "delims=" %%I in ('git rev-parse --abbrev-ref HEAD 2^>nul') do set "CURRENT_BRANCH=%%I"
 echo  You are on branch: !CURRENT_BRANCH!
 echo.
-set /p "QPR_SAVE=  Save and upload your latest changes first? (Y/N): "
+set "QPR_SAVE=" & set /p "QPR_SAVE=  Save and upload your latest changes first? (Y/N): "
 if /I "!QPR_SAVE!"=="Y" (
     echo.
-    set /p "QPR_MSG=  Describe what you changed: "
+    set "QPR_MSG=" & set /p "QPR_MSG=  Describe what you changed: "
     echo.
     echo  [Step 1/3] Marking all changes...
     call git add -A
@@ -631,7 +631,7 @@ echo.
 echo  This will download someone's pull request so you can test it.
 echo  (Currently works with GitHub repositories.)
 echo.
-set /p "QTPR_NUM=  Enter the pull request number: "
+set "QTPR_NUM=" & set /p "QTPR_NUM=  Enter the pull request number: "
 echo.
 echo  [Step 1/3] Downloading the pull request...
 call git fetch origin pull/!QTPR_NUM!/head:pr-!QTPR_NUM!
@@ -675,7 +675,7 @@ echo     [10] Show project overview
 echo.
 echo     [0]  Back to main menu
 echo.
-set /p "CH=  Select an option [0-10]: "
+set "CH=" & set /p "CH=  Select an option [0-10]: "
 
 if "!CH!"=="1" goto DoInit
 if "!CH!"=="2" goto DoClone
@@ -705,8 +705,8 @@ cls
 echo.
 echo  --- Clone a Repository ---
 echo.
-set /p "CLONE_URL=  Enter the repository URL: "
-set /p "CLONE_DIR=  Enter destination folder (or press Enter for default): "
+set "CLONE_URL=" & set /p "CLONE_URL=  Enter the repository URL: "
+set "CLONE_DIR=" & set /p "CLONE_DIR=  Enter destination folder (or press Enter for default): "
 if "!CLONE_DIR!"=="" (
     call git clone "!CLONE_URL!"
 ) else (
@@ -731,7 +731,7 @@ cls
 echo.
 echo  --- Configure User Name ---
 echo.
-set /p "UNAME=  Enter your name: "
+set "UNAME=" & set /p "UNAME=  Enter your name: "
 call git config user.name "!UNAME!"
 echo.
 echo  Name set to: !UNAME!
@@ -744,7 +744,7 @@ cls
 echo.
 echo  --- Configure User Email ---
 echo.
-set /p "UEMAIL=  Enter your email: "
+set "UEMAIL=" & set /p "UEMAIL=  Enter your email: "
 call git config user.email "!UEMAIL!"
 echo.
 echo  Email set to: !UEMAIL!
@@ -787,8 +787,8 @@ cls
 echo.
 echo  --- Set Global Config ---
 echo.
-set /p "GCFG_KEY=  Enter config key (e.g. user.name): "
-set /p "GCFG_VAL=  Enter config value: "
+set "GCFG_KEY=" & set /p "GCFG_KEY=  Enter config key (e.g. user.name): "
+set "GCFG_VAL=" & set /p "GCFG_VAL=  Enter config value: "
 call git config --global "!GCFG_KEY!" "!GCFG_VAL!"
 echo.
 echo  Global config set: !GCFG_KEY! = !GCFG_VAL!
@@ -842,7 +842,7 @@ echo     [10] Delete a branch from the cloud
 echo.
 echo     [0]  Back to main menu
 echo.
-set /p "CH=  Select an option [0-10]: "
+set "CH=" & set /p "CH=  Select an option [0-10]: "
 
 if "!CH!"=="1" goto DoBranchList
 if "!CH!"=="2" goto DoBranchCreate
@@ -876,8 +876,8 @@ cls
 echo.
 echo  --- Create a New Branch ---
 echo.
-set /p "NEW_BR=  Enter new branch name: "
-set /p "SWITCH_BR=  Switch to it now? (Y/N): "
+set "NEW_BR=" & set /p "NEW_BR=  Enter new branch name: "
+set "SWITCH_BR=" & set /p "SWITCH_BR=  Switch to it now? (Y/N): "
 if /I "!SWITCH_BR!"=="Y" (
     call git checkout -b "!NEW_BR!"
 ) else (
@@ -895,7 +895,7 @@ echo.
 echo  Available branches:
 call git branch
 echo.
-set /p "SW_BR=  Enter branch name to switch to: "
+set "SW_BR=" & set /p "SW_BR=  Enter branch name to switch to: "
 call git checkout "!SW_BR!"
 echo.
 pause
@@ -908,7 +908,7 @@ echo  --- Rename Current Branch ---
 echo.
 for /f "delims=" %%I in ('git rev-parse --abbrev-ref HEAD 2^>nul') do set "CURRENT_BRANCH=%%I"
 echo  Current branch: !CURRENT_BRANCH!
-set /p "REN_BR=  Enter new name: "
+set "REN_BR=" & set /p "REN_BR=  Enter new name: "
 call git branch -m "!REN_BR!"
 echo.
 pause
@@ -922,8 +922,8 @@ echo.
 echo  Available branches:
 call git branch
 echo.
-set /p "DEL_BR=  Enter branch name to delete: "
-set /p "FORCE_DEL=  Force delete? (Y/N): "
+set "DEL_BR=" & set /p "DEL_BR=  Enter branch name to delete: "
+set "FORCE_DEL=" & set /p "FORCE_DEL=  Force delete? (Y/N): "
 if /I "!FORCE_DEL!"=="Y" (
     call git branch -D "!DEL_BR!"
 ) else (
@@ -941,7 +941,7 @@ echo.
 echo  Remote branches:
 call git branch -r
 echo.
-set /p "TRACK_BR=  Enter remote branch (e.g. origin/feature): "
+set "TRACK_BR=" & set /p "TRACK_BR=  Enter remote branch (e.g. origin/feature): "
 for /f "tokens=2 delims=/" %%A in ("!TRACK_BR!") do set "LOCAL_TR=%%A"
 call git checkout --track "!TRACK_BR!"
 echo.
@@ -955,7 +955,7 @@ echo  --- Set Upstream for Current Branch ---
 echo.
 for /f "delims=" %%I in ('git rev-parse --abbrev-ref HEAD 2^>nul') do set "CURRENT_BRANCH=%%I"
 set "UPS_BR=origin/!CURRENT_BRANCH!"
-set /p "UPS_BR=  Upstream branch (press Enter for '!UPS_BR!'): "
+set "UPS_BR=" & set /p "UPS_BR=  Upstream branch (press Enter for '!UPS_BR!'): "
 call git branch --set-upstream-to="!UPS_BR!"
 echo.
 pause
@@ -989,10 +989,10 @@ echo.
 echo  Remote branches:
 call git branch -r
 echo.
-set /p "RDBR_NAME=  Enter branch name to delete from remote: "
+set "RDBR_NAME=" & set /p "RDBR_NAME=  Enter branch name to delete from remote: "
 set "RDBR_REMOTE=origin"
-set /p "RDBR_REMOTE=  Remote name (press Enter for 'origin'): "
-set /p "RDBR_CONFIRM=  Delete '!RDBR_NAME!' from '!RDBR_REMOTE!'? (Y/N): "
+set "RDBR_REMOTE=" & set /p "RDBR_REMOTE=  Remote name (press Enter for 'origin'): "
+set "RDBR_CONFIRM=" & set /p "RDBR_CONFIRM=  Delete '!RDBR_NAME!' from '!RDBR_REMOTE!'? (Y/N): "
 if /I "!RDBR_CONFIRM!"=="Y" (
     call git push "!RDBR_REMOTE!" --delete "!RDBR_NAME!"
 ) else (
@@ -1031,7 +1031,7 @@ echo     [15] Throw away ALL unsaved changes
 echo.
 echo     [0]  Back to main menu
 echo.
-set /p "CH=  Select an option [0-15]: "
+set "CH=" & set /p "CH=  Select an option [0-15]: "
 
 if "!CH!"=="1" goto DoStageAll
 if "!CH!"=="2" goto DoStageFile
@@ -1070,7 +1070,7 @@ echo.
 echo  Modified files:
 call git status --short
 echo.
-set /p "STAGE_F=  Enter file path to stage: "
+set "STAGE_F=" & set /p "STAGE_F=  Enter file path to stage: "
 call git add "!STAGE_F!"
 echo.
 pause
@@ -1084,7 +1084,7 @@ echo.
 echo  Staged files:
 call git diff --cached --name-only
 echo.
-set /p "UNSTAGE_F=  Enter file path to unstage: "
+set "UNSTAGE_F=" & set /p "UNSTAGE_F=  Enter file path to unstage: "
 call git restore --staged "!UNSTAGE_F!"
 echo.
 pause
@@ -1095,7 +1095,7 @@ cls
 echo.
 echo  --- Commit Staged Changes ---
 echo.
-set /p "COMMIT_MSG=  Enter commit message: "
+set "COMMIT_MSG=" & set /p "COMMIT_MSG=  Enter commit message: "
 call git commit -m "!COMMIT_MSG!"
 echo.
 pause
@@ -1106,7 +1106,7 @@ cls
 echo.
 echo  --- Quick Commit (Stage All + Commit) ---
 echo.
-set /p "QC_MSG=  Enter commit message: "
+set "QC_MSG=" & set /p "QC_MSG=  Enter commit message: "
 call git add -A
 call git commit -m "!QC_MSG!"
 echo.
@@ -1118,7 +1118,7 @@ cls
 echo.
 echo  --- Stash Changes ---
 echo.
-set /p "STASH_MSG=  Enter stash description (or press Enter to skip): "
+set "STASH_MSG=" & set /p "STASH_MSG=  Enter stash description (or press Enter to skip): "
 if "!STASH_MSG!"=="" (
     call git stash
 ) else (
@@ -1136,7 +1136,7 @@ echo.
 echo  Available stashes:
 call git stash list
 echo.
-set /p "STASH_IDX=  Enter stash number (or press Enter for latest): "
+set "STASH_IDX=" & set /p "STASH_IDX=  Enter stash number (or press Enter for latest): "
 if "!STASH_IDX!"=="" (
     call git stash pop
 ) else (
@@ -1164,8 +1164,8 @@ echo.
 echo  Modified files:
 call git status --short
 echo.
-set /p "DISCARD_F=  Enter file path to discard changes: "
-set /p "CONFIRM_DISCARD=  This cannot be undone. Continue? (Y/N): "
+set "DISCARD_F=" & set /p "DISCARD_F=  Enter file path to discard changes: "
+set "CONFIRM_DISCARD=" & set /p "CONFIRM_DISCARD=  This cannot be undone. Continue? (Y/N): "
 if /I "!CONFIRM_DISCARD!"=="Y" (
     call git restore "!DISCARD_F!"
     echo  Changes discarded.
@@ -1196,7 +1196,7 @@ echo.
 echo  Available stashes:
 call git stash list
 echo.
-set /p "SSHOW_IDX=  Enter stash number (or press Enter for latest): "
+set "SSHOW_IDX=" & set /p "SSHOW_IDX=  Enter stash number (or press Enter for latest): "
 if "!SSHOW_IDX!"=="" (
     call git stash show -p
 ) else (
@@ -1214,8 +1214,8 @@ echo.
 echo  Available stashes:
 call git stash list
 echo.
-set /p "SDROP_IDX=  Enter stash number to drop: "
-set /p "SDROP_CONFIRM=  This cannot be undone. Continue? (Y/N): "
+set "SDROP_IDX=" & set /p "SDROP_IDX=  Enter stash number to drop: "
+set "SDROP_CONFIRM=" & set /p "SDROP_CONFIRM=  This cannot be undone. Continue? (Y/N): "
 if /I "!SDROP_CONFIRM!"=="Y" (
     call git stash drop stash@{!SDROP_IDX!}
 ) else (
@@ -1233,7 +1233,7 @@ echo.
 echo  Current stashes:
 call git stash list
 echo.
-set /p "SCLEAR_CONFIRM=  Delete ALL stashes permanently? (Y/N): "
+set "SCLEAR_CONFIRM=" & set /p "SCLEAR_CONFIRM=  Delete ALL stashes permanently? (Y/N): "
 if /I "!SCLEAR_CONFIRM!"=="Y" (
     call git stash clear
     echo  All stashes cleared.
@@ -1252,12 +1252,12 @@ echo.
 echo  Modified files:
 call git status --short
 echo.
-set /p "DIFF_F=  Enter file path: "
+set "DIFF_F=" & set /p "DIFF_F=  Enter file path: "
 echo.
 echo     [1]  Unstaged changes
 echo     [2]  Staged changes
 echo.
-set /p "DIFF_FCH=  Select: "
+set "DIFF_FCH=" & set /p "DIFF_FCH=  Select: "
 if "!DIFF_FCH!"=="1" call git diff "!DIFF_F!"
 if "!DIFF_FCH!"=="2" call git diff --cached "!DIFF_F!"
 echo.
@@ -1272,7 +1272,7 @@ echo.
 echo  Current status:
 call git status --short
 echo.
-set /p "DALL_CONFIRM=  This will discard ALL uncommitted changes. Continue? (Y/N): "
+set "DALL_CONFIRM=" & set /p "DALL_CONFIRM=  This will discard ALL uncommitted changes. Continue? (Y/N): "
 if /I "!DALL_CONFIRM!"=="Y" (
     call git restore .
     echo  All local changes discarded.
@@ -1308,7 +1308,7 @@ echo     [11] Upload all version tags to the cloud
 echo.
 echo     [0]  Back to main menu
 echo.
-set /p "CH=  Select an option [0-11]: "
+set "CH=" & set /p "CH=  Select an option [0-11]: "
 
 if "!CH!"=="1" goto DoPush
 if "!CH!"=="2" goto DoPull
@@ -1334,16 +1334,16 @@ echo  Current branch: !CURRENT_BRANCH!
 set "TARGET_BRANCH=!CURRENT_BRANCH!"
 set "PUBLISH_FLAG="
 set "FORCE_FLAG="
-set /p "TARGET_BRANCH=  Branch to push to (press Enter for '!CURRENT_BRANCH!'): "
+set "TARGET_BRANCH=" & set /p "TARGET_BRANCH=  Branch to push to (press Enter for '!CURRENT_BRANCH!'): "
 
 call git rev-parse --verify --quiet refs/heads/!TARGET_BRANCH! >nul 2>&1
 if errorlevel 1 (
     echo.
     echo  Branch '!TARGET_BRANCH!' does not exist locally.
-    set /p "CREATE_BRANCH=  Create and switch to it? (Y/N): "
+    set "CREATE_BRANCH=" & set /p "CREATE_BRANCH=  Create and switch to it? (Y/N): "
     if /I "!CREATE_BRANCH!"=="Y" (
         call git checkout -b "!TARGET_BRANCH!"
-        set /p "DO_PUBLISH=  Publish to remote (set upstream)? (Y/N): "
+        set "DO_PUBLISH=" & set /p "DO_PUBLISH=  Publish to remote (set upstream)? (Y/N): "
         if /I "!DO_PUBLISH!"=="Y" set "PUBLISH_FLAG=-u"
     ) else (
         echo  Cancelled.
@@ -1357,7 +1357,7 @@ if errorlevel 1 (
 )
 
 echo.
-set /p "FORCE_PUSH=  Force push? (Y/N): "
+set "FORCE_PUSH=" & set /p "FORCE_PUSH=  Force push? (Y/N): "
 
 if /I not "!FORCE_PUSH!"=="Y" (
     set "FORCE_FLAG="
@@ -1372,7 +1372,7 @@ echo  with your local computer's version. Any work on
 echo  the cloud that you don't have will be ERASED.
 echo  ================================================
 echo.
-set /p "CONFIRM_OVERWRITE=  To proceed, type the word OVERWRITE (or press Enter to cancel): "
+set "CONFIRM_OVERWRITE=" & set /p "CONFIRM_OVERWRITE=  To proceed, type the word OVERWRITE (or press Enter to cancel): "
 if /I "!CONFIRM_OVERWRITE!"=="OVERWRITE" (
     set "FORCE_FLAG=--force"
     echo  Warning: Cloud overwrite enabled.
@@ -1387,9 +1387,9 @@ echo.
 echo Before sharing your work, Git needs to bundle your edited files 
 echo together and save them into the project's local history.
 echo.
-set /p "WANT_COMMIT=  Save local work before uploading? (Y/N): "
+set "WANT_COMMIT=" & set /p "WANT_COMMIT=  Save local work before uploading? (Y/N): "
 if /I "!WANT_COMMIT!"=="Y" (
-    set /p "PUSH_MSG=  Enter commit message: "
+    set "PUSH_MSG=" & set /p "PUSH_MSG=  Enter commit message: "
     call git add -A
     call git commit -m "!PUSH_MSG!"
 )
@@ -1419,7 +1419,7 @@ echo  --- Pull from Remote ---
 echo.
 for /f "delims=" %%I in ('git rev-parse --abbrev-ref HEAD 2^>nul') do set "CURRENT_BRANCH=%%I"
 set "PULL_BR=!CURRENT_BRANCH!"
-set /p "PULL_BR=  Branch to pull (press Enter for '!CURRENT_BRANCH!'): "
+set "PULL_BR=" & set /p "PULL_BR=  Branch to pull (press Enter for '!CURRENT_BRANCH!'): "
 call git pull origin "!PULL_BR!"
 echo.
 pause
@@ -1451,8 +1451,8 @@ cls
 echo.
 echo  --- Add a Remote ---
 echo.
-set /p "REM_NAME=  Remote name (e.g. origin): "
-set /p "REM_URL=  Remote URL: "
+set "REM_NAME=" & set /p "REM_NAME=  Remote name (e.g. origin): "
+set "REM_URL=" & set /p "REM_URL=  Remote URL: "
 call git remote add "!REM_NAME!" "!REM_URL!"
 echo.
 pause
@@ -1466,7 +1466,7 @@ echo.
 echo  Current remotes:
 call git remote -v
 echo.
-set /p "REM_DEL=  Remote name to remove: "
+set "REM_DEL=" & set /p "REM_DEL=  Remote name to remove: "
 call git remote remove "!REM_DEL!"
 echo.
 pause
@@ -1480,8 +1480,8 @@ echo.
 echo  Current remotes:
 call git remote -v
 echo.
-set /p "REM_OLD=  Current remote name: "
-set /p "REM_NEW=  New remote name: "
+set "REM_OLD=" & set /p "REM_OLD=  Current remote name: "
+set "REM_NEW=" & set /p "REM_NEW=  New remote name: "
 call git remote rename "!REM_OLD!" "!REM_NEW!"
 echo.
 pause
@@ -1495,8 +1495,8 @@ echo.
 echo  Current remotes:
 call git remote -v
 echo.
-set /p "RURL_NAME=  Remote name: "
-set /p "RURL_URL=  New URL: "
+set "RURL_NAME=" & set /p "RURL_NAME=  Remote name: "
+set "RURL_URL=" & set /p "RURL_URL=  New URL: "
 call git remote set-url "!RURL_NAME!" "!RURL_URL!"
 echo.
 echo  URL updated.
@@ -1510,7 +1510,7 @@ echo.
 echo  --- Prune Stale Remote Branches ---
 echo.
 set "PRUNE_REM=origin"
-set /p "PRUNE_REM=  Remote to prune (press Enter for 'origin'): "
+set "PRUNE_REM=" & set /p "PRUNE_REM=  Remote to prune (press Enter for 'origin'): "
 call git remote prune "!PRUNE_REM!"
 echo.
 echo  Stale branches pruned.
@@ -1524,7 +1524,7 @@ echo.
 echo  --- Push All Branches ---
 echo.
 set "PALL_REM=origin"
-set /p "PALL_REM=  Remote to push to (press Enter for 'origin'): "
+set "PALL_REM=" & set /p "PALL_REM=  Remote to push to (press Enter for 'origin'): "
 call git push "!PALL_REM!" --all
 echo.
 pause
@@ -1536,7 +1536,7 @@ echo.
 echo  --- Push Tags to Remote ---
 echo.
 set "PTAG_REM=origin"
-set /p "PTAG_REM=  Remote to push to (press Enter for 'origin'): "
+set "PTAG_REM=" & set /p "PTAG_REM=  Remote to push to (press Enter for 'origin'): "
 call git push "!PTAG_REM!" --tags
 echo.
 echo  All tags pushed.
@@ -1568,7 +1568,7 @@ echo     [14] Show lines added/removed per save point
 echo.
 echo     [0]  Back to main menu
 echo.
-set /p "CH=  Select an option [0-14]: "
+set "CH=" & set /p "CH=  Select an option [0-14]: "
 
 if "!CH!"=="1" goto DoLog
 if "!CH!"=="2" goto DoLogOneline
@@ -1592,7 +1592,7 @@ cls
 echo.
 echo  --- Commit Log ---
 echo.
-set /p "LOG_N=  How many commits to show? (press Enter for 10): "
+set "LOG_N=" & set /p "LOG_N=  How many commits to show? (press Enter for 10): "
 if "!LOG_N!"=="" set "LOG_N=10"
 call git log -!LOG_N! --graph --decorate
 echo.
@@ -1604,7 +1604,7 @@ cls
 echo.
 echo  --- Compact Log ---
 echo.
-set /p "LOG_N2=  How many commits to show? (press Enter for 20): "
+set "LOG_N2=" & set /p "LOG_N2=  How many commits to show? (press Enter for 20): "
 if "!LOG_N2!"=="" set "LOG_N2=20"
 call git log -!LOG_N2! --oneline --graph --decorate
 echo.
@@ -1620,12 +1620,12 @@ echo     [1]  Unstaged changes
 echo     [2]  Staged changes
 echo     [3]  Between two branches
 echo.
-set /p "DIFF_CH=  Select: "
+set "DIFF_CH=" & set /p "DIFF_CH=  Select: "
 if "!DIFF_CH!"=="1" call git diff
 if "!DIFF_CH!"=="2" call git diff --cached
 if "!DIFF_CH!"=="3" (
-    set /p "DIFF_A=  First branch: "
-    set /p "DIFF_B=  Second branch: "
+    set "DIFF_A=" & set /p "DIFF_A=  First branch: "
+    set "DIFF_B=" & set /p "DIFF_B=  Second branch: "
     call git diff "!DIFF_A!".."!DIFF_B!"
 )
 echo.
@@ -1637,7 +1637,7 @@ cls
 echo.
 echo  --- Show a Commit ---
 echo.
-set /p "SHOW_SHA=  Enter commit hash: "
+set "SHOW_SHA=" & set /p "SHOW_SHA=  Enter commit hash: "
 call git show "!SHOW_SHA!"
 echo.
 pause
@@ -1648,7 +1648,7 @@ cls
 echo.
 echo  --- Search Commits by Message ---
 echo.
-set /p "SEARCH_Q=  Enter search keyword: "
+set "SEARCH_Q=" & set /p "SEARCH_Q=  Enter search keyword: "
 call git log --oneline --all --grep="!SEARCH_Q!"
 echo.
 pause
@@ -1659,7 +1659,7 @@ cls
 echo.
 echo  --- Blame (Who Changed a File) ---
 echo.
-set /p "BLAME_F=  Enter file path: "
+set "BLAME_F=" & set /p "BLAME_F=  Enter file path: "
 call git blame "!BLAME_F!"
 echo.
 pause
@@ -1670,8 +1670,8 @@ cls
 echo.
 echo  --- File History ---
 echo.
-set /p "FHIST_F=  Enter file path: "
-set /p "FHIST_N=  How many commits? (press Enter for 10): "
+set "FHIST_F=" & set /p "FHIST_F=  Enter file path: "
+set "FHIST_N=" & set /p "FHIST_N=  How many commits? (press Enter for 10): "
 if "!FHIST_N!"=="" set "FHIST_N=10"
 call git log -!FHIST_N! --oneline -- "!FHIST_F!"
 echo.
@@ -1683,7 +1683,7 @@ cls
 echo.
 echo  --- Reflog (All Recent HEAD Movements) ---
 echo.
-set /p "RLOG_N=  How many entries? (press Enter for 20): "
+set "RLOG_N=" & set /p "RLOG_N=  How many entries? (press Enter for 20): "
 if "!RLOG_N!"=="" set "RLOG_N=20"
 call git reflog -!RLOG_N!
 echo.
@@ -1705,8 +1705,8 @@ cls
 echo.
 echo  --- Show File at a Specific Commit ---
 echo.
-set /p "SFC_SHA=  Enter commit hash: "
-set /p "SFC_FILE=  Enter file path: "
+set "SFC_SHA=" & set /p "SFC_SHA=  Enter commit hash: "
+set "SFC_FILE=" & set /p "SFC_FILE=  Enter file path: "
 call git show "!SFC_SHA!":"!SFC_FILE!"
 echo.
 pause
@@ -1734,8 +1734,8 @@ echo.
 echo  Recent commits:
 call git log -10 --oneline
 echo.
-set /p "DC_A=  First commit hash: "
-set /p "DC_B=  Second commit hash: "
+set "DC_A=" & set /p "DC_A=  First commit hash: "
+set "DC_B=" & set /p "DC_B=  Second commit hash: "
 call git diff "!DC_A!" "!DC_B!"
 echo.
 pause
@@ -1756,7 +1756,7 @@ cls
 echo.
 echo  --- Commit Stats ---
 echo.
-set /p "CSTAT_N=  How many commits? (press Enter for 5): "
+set "CSTAT_N=" & set /p "CSTAT_N=  How many commits? (press Enter for 5): "
 if "!CSTAT_N!"=="" set "CSTAT_N=5"
 call git log -!CSTAT_N! --stat
 echo.
@@ -1788,7 +1788,7 @@ echo     [11] Cancel an ongoing cherry-pick
 echo.
 echo     [0]  Back to main menu
 echo.
-set /p "CH=  Select an option [0-11]: "
+set "CH=" & set /p "CH=  Select an option [0-11]: "
 
 if "!CH!"=="1" goto DoMerge
 if "!CH!"=="2" goto DoRebase
@@ -1815,7 +1815,7 @@ echo.
 echo  Available branches:
 call git branch
 echo.
-set /p "MERGE_BR=  Branch to merge into current: "
+set "MERGE_BR=" & set /p "MERGE_BR=  Branch to merge into current: "
 call git merge "!MERGE_BR!"
 if errorlevel 1 (
     call :ResolveConflicts
@@ -1832,8 +1832,8 @@ echo.
 for /f "delims=" %%I in ('git rev-parse --abbrev-ref HEAD 2^>nul') do set "CURRENT_BRANCH=%%I"
 echo  You are on: !CURRENT_BRANCH!
 echo.
-set /p "REBASE_BR=  Branch to rebase onto: "
-set /p "REBASE_CONFIRM=  This rewrites history. Continue? (Y/N): "
+set "REBASE_BR=" & set /p "REBASE_BR=  Branch to rebase onto: "
+set "REBASE_CONFIRM=" & set /p "REBASE_CONFIRM=  This rewrites history. Continue? (Y/N): "
 if /I not "!REBASE_CONFIRM!"=="Y" (
     echo  Cancelled.
     echo.
@@ -1879,7 +1879,7 @@ echo.
 echo  Recent commits across all branches:
 call git log --all -10 --oneline
 echo.
-set /p "CP_SHA=  Enter commit hash to cherry-pick: "
+set "CP_SHA=" & set /p "CP_SHA=  Enter commit hash to cherry-pick: "
 call git cherry-pick "!CP_SHA!"
 echo.
 pause
@@ -1903,8 +1903,8 @@ echo.
 echo  Recent commits:
 call git log -10 --oneline
 echo.
-set /p "SQ_N=  How many commits to squash into one? "
-set /p "SQ_CONFIRM=  This rewrites history. Continue? (Y/N): "
+set "SQ_N=" & set /p "SQ_N=  How many commits to squash into one? "
+set "SQ_CONFIRM=" & set /p "SQ_CONFIRM=  This rewrites history. Continue? (Y/N): "
 if /I not "!SQ_CONFIRM!"=="Y" (
     echo  Cancelled.
     echo.
@@ -1913,7 +1913,7 @@ if /I not "!SQ_CONFIRM!"=="Y" (
 )
 call git reset --soft HEAD~!SQ_N!
 echo.
-set /p "SQ_MSG=  Enter new commit message: "
+set "SQ_MSG=" & set /p "SQ_MSG=  Enter new commit message: "
 call git commit -m "!SQ_MSG!"
 call :PromptForcePush
 echo.
@@ -1931,7 +1931,7 @@ echo.
 echo  Available branches:
 call git branch
 echo.
-set /p "MNFF_BR=  Branch to merge into current: "
+set "MNFF_BR=" & set /p "MNFF_BR=  Branch to merge into current: "
 call git merge --no-ff "!MNFF_BR!"
 echo.
 pause
@@ -1956,8 +1956,8 @@ echo.
 echo  Recent commits across all branches:
 call git log --all -15 --oneline
 echo.
-set /p "CPM_FROM=  Enter oldest commit hash (exclusive): "
-set /p "CPM_TO=  Enter newest commit hash (inclusive): "
+set "CPM_FROM=" & set /p "CPM_FROM=  Enter oldest commit hash (exclusive): "
+set "CPM_TO=" & set /p "CPM_TO=  Enter newest commit hash (inclusive): "
 call git cherry-pick "!CPM_FROM!".."!CPM_TO!"
 echo.
 pause
@@ -1993,7 +1993,7 @@ echo     [9]  Recover a lost save point
 echo.
 echo     [0]  Back to main menu
 echo.
-set /p "CH=  Select an option [0-9]: "
+set "CH=" & set /p "CH=  Select an option [0-9]: "
 
 if "!CH!"=="1" goto DoSoftReset
 if "!CH!"=="2" goto DoHardResetLast
@@ -2016,7 +2016,7 @@ echo  Recent commits:
 call git log -5 --oneline
 echo.
 set "SR_COMMIT=HEAD"
-set /p "SR_COMMIT=  Enter commit ID to undo (press Enter for last save): "
+set "SR_COMMIT=" & set /p "SR_COMMIT=  Enter commit ID to undo (press Enter for last save): "
 call git reset --soft !SR_COMMIT!~1
 echo  Commit undone. Your changes are still staged.
 call :PromptForcePush
@@ -2033,8 +2033,8 @@ echo  Recent commits:
 call git log -5 --oneline
 echo.
 set "HR_COMMIT=HEAD"
-set /p "HR_COMMIT=  Enter commit ID to undo (press Enter for last save): "
-set /p "HR_CONFIRM=  This will permanently delete changes. Continue? (Y/N): "
+set "HR_COMMIT=" & set /p "HR_COMMIT=  Enter commit ID to undo (press Enter for last save): "
+set "HR_CONFIRM=" & set /p "HR_CONFIRM=  This will permanently delete changes. Continue? (Y/N): "
 if /I not "!HR_CONFIRM!"=="Y" (
     echo  Cancelled.
     echo.
@@ -2056,7 +2056,7 @@ echo.
 echo  Recent commits:
 call git log -5 --oneline
 echo.
-set /p "REV_SHA=  Enter commit hash to revert: "
+set "REV_SHA=" & set /p "REV_SHA=  Enter commit hash to revert: "
 call git revert "!REV_SHA!"
 echo.
 pause
@@ -2070,17 +2070,17 @@ echo.
 echo  Recent commits:
 call git log -10 --oneline
 echo.
-set /p "RESET_SHA=  Enter commit hash: "
+set "RESET_SHA=" & set /p "RESET_SHA=  Enter commit hash: "
 echo.
 echo     [1]  Soft (keep changes staged)
 echo     [2]  Mixed (keep changes unstaged)
 echo     [3]  Hard (discard everything)
 echo.
-set /p "RESET_MODE=  Select mode: "
+set "RESET_MODE=" & set /p "RESET_MODE=  Select mode: "
 if "!RESET_MODE!"=="1" call git reset --soft "!RESET_SHA!"
 if "!RESET_MODE!"=="2" call git reset --mixed "!RESET_SHA!"
 if "!RESET_MODE!"=="3" (
-    set /p "RESET_CONFIRM=  Hard reset will discard all changes. Continue? (Y/N): "
+    set "RESET_CONFIRM=" & set /p "RESET_CONFIRM=  Hard reset will discard all changes. Continue? (Y/N): "
     if /I "!RESET_CONFIRM!"=="Y" call git reset --hard "!RESET_SHA!"
 )
 call :PromptForcePush
@@ -2096,7 +2096,7 @@ echo.
 echo  Files that would be removed:
 call git clean -n -d
 echo.
-set /p "CLEAN_CONFIRM=  Remove these files? (Y/N): "
+set "CLEAN_CONFIRM=" & set /p "CLEAN_CONFIRM=  Remove these files? (Y/N): "
 if /I "!CLEAN_CONFIRM!"=="Y" (
     call git clean -f -d
     echo  Untracked files removed.
@@ -2115,7 +2115,7 @@ echo.
 echo  Current last commit:
 call git log -1 --oneline
 echo.
-set /p "AMEND_MSG=  Enter new commit message: "
+set "AMEND_MSG=" & set /p "AMEND_MSG=  Enter new commit message: "
 call git commit --amend -m "!AMEND_MSG!"
 call :PromptForcePush
 echo.
@@ -2133,7 +2133,7 @@ echo.
 echo  Modified files:
 call git status --short
 echo.
-set /p "AMF_FILE=  Enter file path to add (or 'all' for everything): "
+set "AMF_FILE=" & set /p "AMF_FILE=  Enter file path to add (or 'all' for everything): "
 if /I "!AMF_FILE!"=="all" (
     call git add -A
 ) else (
@@ -2152,12 +2152,12 @@ cls
 echo.
 echo  --- Restore a Deleted File ---
 echo.
-set /p "RDEL_FILE=  Enter the deleted file path: "
+set "RDEL_FILE=" & set /p "RDEL_FILE=  Enter the deleted file path: "
 echo.
 echo  Last commits that touched this file:
 call git log --oneline --all -- "!RDEL_FILE!"
 echo.
-set /p "RDEL_SHA=  Enter commit hash to restore from (or press Enter for latest): "
+set "RDEL_SHA=" & set /p "RDEL_SHA=  Enter commit hash to restore from (or press Enter for latest): "
 if "!RDEL_SHA!"=="" (
     call git checkout HEAD -- "!RDEL_FILE!"
 ) else (
@@ -2175,14 +2175,14 @@ echo.
 echo  Reflog entries:
 call git reflog -15
 echo.
-set /p "RREC_SHA=  Enter reflog entry hash to recover: "
+set "RREC_SHA=" & set /p "RREC_SHA=  Enter reflog entry hash to recover: "
 echo.
 echo     [1]  Create a new branch from it
 echo     [2]  Cherry-pick it onto current branch
 echo.
-set /p "RREC_MODE=  Select: "
+set "RREC_MODE=" & set /p "RREC_MODE=  Select: "
 if "!RREC_MODE!"=="1" (
-    set /p "RREC_BR=  New branch name: "
+    set "RREC_BR=" & set /p "RREC_BR=  New branch name: "
     call git checkout -b "!RREC_BR!" "!RREC_SHA!"
 )
 if "!RREC_MODE!"=="2" (
@@ -2214,7 +2214,7 @@ echo     [9]  Tag a specific past save point
 echo.
 echo     [0]  Back to main menu
 echo.
-set /p "CH=  Select an option [0-9]: "
+set "CH=" & set /p "CH=  Select an option [0-9]: "
 
 if "!CH!"=="1" goto DoTagList
 if "!CH!"=="2" goto DoTagLight
@@ -2243,7 +2243,7 @@ cls
 echo.
 echo  --- Create Lightweight Tag ---
 echo.
-set /p "TLIGHT=  Enter tag name (e.g. v1.0.0): "
+set "TLIGHT=" & set /p "TLIGHT=  Enter tag name (e.g. v1.0.0): "
 call git tag "!TLIGHT!"
 echo.
 echo  Tag '!TLIGHT!' created.
@@ -2256,8 +2256,8 @@ cls
 echo.
 echo  --- Create Annotated Tag ---
 echo.
-set /p "TANN=  Enter tag name (e.g. v1.0.0): "
-set /p "TANN_MSG=  Enter tag message: "
+set "TANN=" & set /p "TANN=  Enter tag name (e.g. v1.0.0): "
+set "TANN_MSG=" & set /p "TANN_MSG=  Enter tag message: "
 call git tag -a "!TANN!" -m "!TANN_MSG!"
 echo.
 echo  Annotated tag '!TANN!' created.
@@ -2273,7 +2273,7 @@ echo.
 echo  Existing tags:
 call git tag
 echo.
-set /p "TDEL=  Enter tag name to delete: "
+set "TDEL=" & set /p "TDEL=  Enter tag name to delete: "
 call git tag -d "!TDEL!"
 echo.
 pause
@@ -2287,9 +2287,9 @@ echo.
 echo  Existing tags:
 call git tag
 echo.
-set /p "TPUSH=  Enter tag name to push: "
+set "TPUSH=" & set /p "TPUSH=  Enter tag name to push: "
 set "TPUSH_REM=origin"
-set /p "TPUSH_REM=  Remote (press Enter for 'origin'): "
+set "TPUSH_REM=" & set /p "TPUSH_REM=  Remote (press Enter for 'origin'): "
 call git push "!TPUSH_REM!" "!TPUSH!"
 echo.
 pause
@@ -2301,7 +2301,7 @@ echo.
 echo  --- Push All Tags ---
 echo.
 set "TPALL_REM=origin"
-set /p "TPALL_REM=  Remote (press Enter for 'origin'): "
+set "TPALL_REM=" & set /p "TPALL_REM=  Remote (press Enter for 'origin'): "
 call git push "!TPALL_REM!" --tags
 echo.
 echo  All tags pushed.
@@ -2314,10 +2314,10 @@ cls
 echo.
 echo  --- Delete a Remote Tag ---
 echo.
-set /p "TDELR=  Enter tag name to delete from remote: "
+set "TDELR=" & set /p "TDELR=  Enter tag name to delete from remote: "
 set "TDELR_REM=origin"
-set /p "TDELR_REM=  Remote (press Enter for 'origin'): "
-set /p "TDELR_CONFIRM=  Delete tag '!TDELR!' from '!TDELR_REM!'? (Y/N): "
+set "TDELR_REM=" & set /p "TDELR_REM=  Remote (press Enter for 'origin'): "
+set "TDELR_CONFIRM=" & set /p "TDELR_CONFIRM=  Delete tag '!TDELR!' from '!TDELR_REM!'? (Y/N): "
 if /I "!TDELR_CONFIRM!"=="Y" (
     call git push "!TDELR_REM!" --delete "!TDELR!"
 ) else (
@@ -2335,7 +2335,7 @@ echo.
 echo  Existing tags:
 call git tag
 echo.
-set /p "TSHOW=  Enter tag name: "
+set "TSHOW=" & set /p "TSHOW=  Enter tag name: "
 call git show "!TSHOW!"
 echo.
 pause
@@ -2349,11 +2349,11 @@ echo.
 echo  Recent commits:
 call git log -10 --oneline
 echo.
-set /p "TC_SHA=  Enter commit hash: "
-set /p "TC_TAG=  Enter tag name: "
-set /p "TC_ANN=  Annotated tag? (Y/N): "
+set "TC_SHA=" & set /p "TC_SHA=  Enter commit hash: "
+set "TC_TAG=" & set /p "TC_TAG=  Enter tag name: "
+set "TC_ANN=" & set /p "TC_ANN=  Annotated tag? (Y/N): "
 if /I "!TC_ANN!"=="Y" (
-    set /p "TC_MSG=  Enter tag message: "
+    set "TC_MSG=" & set /p "TC_MSG=  Enter tag message: "
     call git tag -a "!TC_TAG!" "!TC_SHA!" -m "!TC_MSG!"
 ) else (
     call git tag "!TC_TAG!" "!TC_SHA!"
@@ -2381,7 +2381,7 @@ echo     [7]  Download a project including its subprojects
 echo.
 echo     [0]  Back to main menu
 echo.
-set /p "CH=  Select an option [0-7]: "
+set "CH=" & set /p "CH=  Select an option [0-7]: "
 
 if "!CH!"=="1" goto DoSubAdd
 if "!CH!"=="2" goto DoSubInit
@@ -2398,8 +2398,8 @@ cls
 echo.
 echo  --- Add a Submodule ---
 echo.
-set /p "SUBA_URL=  Enter submodule repository URL: "
-set /p "SUBA_PATH=  Enter local path for the submodule: "
+set "SUBA_URL=" & set /p "SUBA_URL=  Enter submodule repository URL: "
+set "SUBA_PATH=" & set /p "SUBA_PATH=  Enter local path for the submodule: "
 call git submodule add "!SUBA_URL!" "!SUBA_PATH!"
 echo.
 pause
@@ -2422,7 +2422,7 @@ cls
 echo.
 echo  --- Update Submodules ---
 echo.
-set /p "SUBU_REC=  Update recursively? (Y/N): "
+set "SUBU_REC=" & set /p "SUBU_REC=  Update recursively? (Y/N): "
 if /I "!SUBU_REC!"=="Y" (
     call git submodule update --init --recursive
 ) else (
@@ -2450,8 +2450,8 @@ echo.
 echo  Current submodules:
 call git submodule status
 echo.
-set /p "SUBD_PATH=  Enter submodule path to remove: "
-set /p "SUBD_CONFIRM=  Remove submodule '!SUBD_PATH!'? (Y/N): "
+set "SUBD_PATH=" & set /p "SUBD_PATH=  Enter submodule path to remove: "
+set "SUBD_CONFIRM=" & set /p "SUBD_CONFIRM=  Remove submodule '!SUBD_PATH!'? (Y/N): "
 if /I "!SUBD_CONFIRM!"=="Y" (
     call git submodule deinit -f "!SUBD_PATH!"
     echo  Submodule deinitialized.
@@ -2479,8 +2479,8 @@ cls
 echo.
 echo  --- Clone with Submodules ---
 echo.
-set /p "SUBC_URL=  Enter repository URL: "
-set /p "SUBC_DIR=  Enter destination folder (or press Enter for default): "
+set "SUBC_URL=" & set /p "SUBC_URL=  Enter repository URL: "
+set "SUBC_DIR=" & set /p "SUBC_DIR=  Enter destination folder (or press Enter for default): "
 if "!SUBC_DIR!"=="" (
     call git clone --recursive "!SUBC_URL!"
 ) else (
@@ -2515,7 +2515,7 @@ echo     [15] List all shortcuts (aliases)
 echo.
 echo     [0]  Back to main menu
 echo.
-set /p "CH=  Select an option [0-15]: "
+set "CH=" & set /p "CH=  Select an option [0-15]: "
 
 if "!CH!"=="1" goto DoGrep
 if "!CH!"=="2" goto DoBisect
@@ -2540,7 +2540,7 @@ cls
 echo.
 echo  --- Search Code (Grep) ---
 echo.
-set /p "GREP_Q=  Enter search pattern: "
+set "GREP_Q=" & set /p "GREP_Q=  Enter search pattern: "
 call git grep -n "!GREP_Q!"
 echo.
 pause
@@ -2556,14 +2556,14 @@ echo     [2]  Mark current as bad
 echo     [3]  Mark current as good
 echo     [4]  End bisect
 echo.
-set /p "BIS_CH=  Select: "
+set "BIS_CH=" & set /p "BIS_CH=  Select: "
 if "!BIS_CH!"=="1" (
     call git bisect start
     echo  Bisect started. Mark commits as good or bad.
 )
 if "!BIS_CH!"=="2" call git bisect bad
 if "!BIS_CH!"=="3" (
-    set /p "BIS_GOOD=  Enter good commit hash (or press Enter for current): "
+    set "BIS_GOOD=" & set /p "BIS_GOOD=  Enter good commit hash (or press Enter for current): "
     if "!BIS_GOOD!"=="" (
         call git bisect good
     ) else (
@@ -2580,8 +2580,8 @@ cls
 echo.
 echo  --- Archive Repository ---
 echo.
-set /p "ARC_NAME=  Output file name (e.g. archive.zip): "
-set /p "ARC_FMT=  Format (zip/tar): "
+set "ARC_NAME=" & set /p "ARC_NAME=  Output file name (e.g. archive.zip): "
+set "ARC_FMT=" & set /p "ARC_FMT=  Format (zip/tar): "
 call git archive --format="!ARC_FMT!" --output="!ARC_NAME!" HEAD
 echo.
 echo  Archive created: !ARC_NAME!
@@ -2594,7 +2594,7 @@ cls
 echo.
 echo  --- Create a Patch ---
 echo.
-set /p "PAT_N=  How many commits to include? "
+set "PAT_N=" & set /p "PAT_N=  How many commits to include? "
 call git format-patch -!PAT_N!
 echo.
 echo  Patch file(s) created.
@@ -2607,7 +2607,7 @@ cls
 echo.
 echo  --- Apply a Patch ---
 echo.
-set /p "PAT_FILE=  Enter patch file path: "
+set "PAT_FILE=" & set /p "PAT_FILE=  Enter patch file path: "
 call git apply "!PAT_FILE!"
 echo.
 pause
@@ -2618,8 +2618,8 @@ cls
 echo.
 echo  --- Add a Worktree ---
 echo.
-set /p "WT_PATH=  Enter path for the new worktree: "
-set /p "WT_BR=  Enter branch to check out: "
+set "WT_PATH=" & set /p "WT_PATH=  Enter path for the new worktree: "
+set "WT_BR=" & set /p "WT_BR=  Enter branch to check out: "
 call git worktree add "!WT_PATH!" "!WT_BR!"
 echo.
 pause
@@ -2643,7 +2643,7 @@ echo.
 echo  Current worktrees:
 call git worktree list
 echo.
-set /p "WT_DEL=  Enter worktree path to remove: "
+set "WT_DEL=" & set /p "WT_DEL=  Enter worktree path to remove: "
 call git worktree remove "!WT_DEL!"
 echo.
 pause
@@ -2654,7 +2654,7 @@ cls
 echo.
 echo  --- Check if a File is Ignored ---
 echo.
-set /p "CI_FILE=  Enter file path: "
+set "CI_FILE=" & set /p "CI_FILE=  Enter file path: "
 call git check-ignore -v "!CI_FILE!"
 if errorlevel 1 echo  File is NOT ignored.
 echo.
@@ -2700,7 +2700,7 @@ echo  --- Run a Custom Git Command ---
 echo.
 echo  Type any git command (without the 'git' prefix).
 echo.
-set /p "CUSTOM_CMD=  git "
+set "CUSTOM_CMD=" & set /p "CUSTOM_CMD=  git "
 call git !CUSTOM_CMD!
 echo.
 pause
@@ -2774,13 +2774,13 @@ echo    [1] Keep YOUR version (discard theirs)
 echo    [2] Keep THEIR version (discard yours)
 echo    [3] View the conflict and edit manually
 echo.
-set /p "CONF_FILE=  Enter a conflicting file name from the list above: "
+set "CONF_FILE=" & set /p "CONF_FILE=  Enter a conflicting file name from the list above: "
 echo.
 echo     [1]  Keep MY version of '!CONF_FILE!'
 echo     [2]  Keep THEIR version of '!CONF_FILE!'
 echo     [3]  Show me the conflict so I can decide
 echo.
-set /p "CONF_ACTION=  Select: "
+set "CONF_ACTION=" & set /p "CONF_ACTION=  Select: "
 if "!CONF_ACTION!"=="1" (
     call git checkout --ours "!CONF_FILE!"
     call git add "!CONF_FILE!"
@@ -2808,7 +2808,7 @@ if "!CONF_ACTION!"=="3" (
     echo     [2]  Keep THEIR version
     echo     [3]  I'll edit the file myself, come back when done
     echo.
-    set /p "CONF_EDIT=  Select: "
+    set "CONF_EDIT=" & set /p "CONF_EDIT=  Select: "
     if "!CONF_EDIT!"=="1" (
         call git checkout --ours "!CONF_FILE!"
         call git add "!CONF_FILE!"
@@ -2834,7 +2834,7 @@ goto ConflictFileLoop
 
 :PromptForcePush
 echo.
-set /p "SYNC_REMOTE=  Sync changes to remote? (Y/N): "
+set "SYNC_REMOTE=" & set /p "SYNC_REMOTE=  Sync changes to remote? (Y/N): "
 if /I not "!SYNC_REMOTE!"=="Y" goto :eof
 for /f "delims=" %%I in ('git rev-parse --abbrev-ref HEAD 2^>nul') do set "CURRENT_BRANCH=%%I"
 echo  Force-updating the cloud (with lease)...
@@ -2844,7 +2844,7 @@ if not errorlevel 1 (
     goto :eof
 )
 echo  Force-push with lease failed. The remote may have new changes.
-set /p "FORCE_RETRY=  Force push anyway (overwrite remote)? (Y/N): "
+set "FORCE_RETRY=" & set /p "FORCE_RETRY=  Force push anyway (overwrite remote)? (Y/N): "
 if /I "!FORCE_RETRY!"=="Y" (
     call git push origin "!CURRENT_BRANCH!" --force
     echo  Cloud forcefully updated!
@@ -2857,7 +2857,7 @@ goto :eof
 echo.
 echo  WARNING: This commit may contain sensitive data.
 echo  Syncing to remote is CRITICAL to remove it from the cloud.
-set /p "SYNC_REMOTE=  Force-push to remote now? (Y/N): "
+set "SYNC_REMOTE=" & set /p "SYNC_REMOTE=  Force-push to remote now? (Y/N): "
 if /I not "!SYNC_REMOTE!"=="Y" goto :eof
 for /f "delims=" %%I in ('git rev-parse --abbrev-ref HEAD 2^>nul') do set "CURRENT_BRANCH=%%I"
 echo  FORCE-updating the cloud...
