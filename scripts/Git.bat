@@ -408,61 +408,76 @@ echo  ===========================================================
 echo  ^|  I COMMITTED SOMETHING I SHOULDN'T HAVE                 ^|
 echo  ===========================================================
 echo.
-echo  This will undo your last save point but keep all your files
-echo  as they are, so you can choose what to include next time.
+echo  Recent save points:
+call git log -5 --oneline
 echo.
-echo  Your last save point:
-call git log -1 --oneline
+set "QUC_COMMIT=HEAD"
+set /p "QUC_COMMIT=  Enter commit ID to undo (press Enter for last save): "
 echo.
 echo  What do you want to do?
-echo     [1]  Undo the last save (keep my changes, I'll redo it)
-echo     [2]  Undo the last save (erase everything from it)
-echo     [3]  Remove a specific file from the last save
+echo     [1]  Undo that save (keep my changes, I'll redo it)
+echo     [2]  Erase that save from history (for secrets/sensitive data)
+echo     [3]  Remove a specific file from that save
 echo.
 set /p "QUC_CH=  Select: "
-if "!QUC_CH!"=="1" (
+if "!QUC_CH!"=="1" goto DoUndoKeep
+if "!QUC_CH!"=="2" goto DoUndoErase
+if "!QUC_CH!"=="3" goto DoUndoFile
+echo  Invalid choice.
+pause
+goto CatQuick
+
+:DoUndoKeep
+echo.
+echo  [Step 1/1] Undoing save point...
+call git reset --soft !QUC_COMMIT!~1
+echo.
+echo  Done! The save point is undone. Your changes are still
+echo  here and marked for saving. You can now:
+echo  - Remove files you don't want with 'Unmark a file' in
+echo    the Saving Changes menu
+echo  - Create a new save point with a better description
+echo.
+echo  Current marked files:
+call git diff --cached --name-only
+call :PromptForcePush
+echo.
+pause
+goto CatQuick
+
+:DoUndoErase
+echo.
+set /p "QUC_CONFIRM=  This will PERMANENTLY erase the commit from history. Continue? (Y/N): "
+if /I not "!QUC_CONFIRM!"=="Y" (
+    echo  Cancelled. Nothing was changed.
     echo.
-    echo  [Step 1/1] Undoing last save point...
-    call git reset --soft HEAD~1
-    echo.
-    echo  Done! Your last save point is undone. Your changes are still
-    echo  here and marked for saving. You can now:
-    echo  - Remove files you don't want with 'Unmark a file' in
-    echo    the Saving Changes menu
-    echo  - Create a new save point with a better description
-    echo.
-    echo  Current marked files:
-    call git diff --cached --name-only
+    pause
+    goto CatQuick
 )
-if "!QUC_CH!"=="2" (
-    echo.
-    set /p "QUC_CONFIRM=  This will PERMANENTLY erase changes. Continue? (Y/N): "
-    if /I "!QUC_CONFIRM!"=="Y" (
-        call git reset --hard HEAD~1
-        echo.
-        echo  Done! The last save point and all its changes are erased.
-    ) else (
-        echo  Cancelled. Nothing was changed.
-    )
-)
-if "!QUC_CH!"=="3" (
-    echo.
-    echo  Files in the last save point:
-    call git diff --name-only HEAD~1 HEAD
-    echo.
-    set /p "QUC_FILE=  Enter file path to remove from last save: "
-    echo.
-    echo  [Step 1/3] Undoing last save point...
-    for /f "delims=" %%M in ('git log -1 --format^=%%s') do set "QUC_MSG=%%M"
-    call git reset --soft HEAD~1
-    echo  [Step 2/3] Unmarking the file...
-    call git restore --staged "!QUC_FILE!"
-    echo  [Step 3/3] Re-saving without that file...
-    call git commit -m "!QUC_MSG!"
-    echo.
-    echo  Done! '!QUC_FILE!' has been removed from your last save.
-    echo  The file is still on your computer, just not in the save point.
-)
+call :DropSpecificCommit "!QUC_COMMIT!"
+call :PromptForcePushHard
+echo.
+pause
+goto CatQuick
+
+:DoUndoFile
+echo.
+echo  Files in that save point:
+call git diff --name-only !QUC_COMMIT!~1 !QUC_COMMIT!
+echo.
+set /p "QUC_FILE=  Enter file path to remove from that save: "
+echo.
+echo  [Step 1/3] Undoing save point...
+for /f "delims=" %%M in ('git log -1 --format^=%%s !QUC_COMMIT!') do set "QUC_MSG=%%M"
+call git reset --soft !QUC_COMMIT!~1
+echo  [Step 2/3] Unmarking the file...
+call git restore --staged "!QUC_FILE!"
+echo  [Step 3/3] Re-saving without that file...
+call git commit -m "!QUC_MSG!"
+echo.
+echo  Done! '!QUC_FILE!' has been removed from the save.
+echo  The file is still on your computer, just not in the save point.
+call :PromptForcePush
 echo.
 pause
 goto CatQuick
@@ -474,16 +489,19 @@ echo  ===========================================================
 echo  ^|  SPLIT MY BIG CHANGE INTO SMALLER SAVES                 ^|
 echo  ===========================================================
 echo.
-echo  This will undo your last save point but keep all the changes,
+echo  This will undo a save point but keep all the changes,
 echo  then let you create multiple smaller save points one at a time.
 echo.
-echo  Your last save point:
-call git log -1 --oneline
+echo  Recent save points:
+call git log -5 --oneline
+echo.
+set "QSPLIT_COMMIT=HEAD"
+set /p "QSPLIT_COMMIT=  Enter commit ID to split from (press Enter for last save): "
 echo.
 echo  Files that were in that save:
-call git diff --name-only HEAD~1 HEAD
+call git diff --name-only !QSPLIT_COMMIT!~1 !QSPLIT_COMMIT!
 echo.
-set /p "QSPLIT_CONFIRM=  Undo the last save and start splitting? (Y/N): "
+set /p "QSPLIT_CONFIRM=  Undo that save and start splitting? (Y/N): "
 if /I not "!QSPLIT_CONFIRM!"=="Y" (
     echo  Cancelled.
     echo.
@@ -491,8 +509,8 @@ if /I not "!QSPLIT_CONFIRM!"=="Y" (
     goto CatQuick
 )
 echo.
-echo  [Step 1] Undoing last save point (changes are kept)...
-call git reset HEAD~1
+echo  [Step 1] Undoing save point (changes are kept)...
+call git reset !QSPLIT_COMMIT!~1
 echo.
 echo  Your files are now all unmarked. You'll create saves one at a time.
 echo.
@@ -544,6 +562,14 @@ if "!HAS_REMAINING!"=="1" (
     goto SplitLoop
 )
 echo  All files have been saved! You're done.
+echo.
+set /p "QSPLIT_SYNC=  Do you want to upload these split saves and overwrite the cloud? (Y/N): "
+if /I "!QSPLIT_SYNC!"=="Y" (
+    for /f "delims=" %%I in ('git rev-parse --abbrev-ref HEAD 2^>nul') do set "CURRENT_BRANCH=%%I"
+    echo  Force-updating the cloud with your split saves...
+    call git push origin "!CURRENT_BRANCH!" --force-with-lease
+    echo  Cloud has been perfectly synchronized!
+)
 echo.
 pause
 goto CatQuick
@@ -1332,13 +1358,36 @@ if errorlevel 1 (
 
 echo.
 set /p "FORCE_PUSH=  Force push? (Y/N): "
-if /I "!FORCE_PUSH!"=="Y" (
-    set "FORCE_FLAG=--force"
-    echo  Warning: Force push enabled.
+
+if /I not "!FORCE_PUSH!"=="Y" (
+    set "FORCE_FLAG="
+    echo  Safe push selected.
+    goto :SkipForcePush
 )
 
 echo.
-set /p "WANT_COMMIT=  Stage and commit before pushing? (Y/N): "
+echo  ==================== DANGER ====================
+echo  This action will OVERWRITE the cloud repository
+echo  with your local computer's version. Any work on
+echo  the cloud that you don't have will be ERASED.
+echo  ================================================
+echo.
+set /p "CONFIRM_OVERWRITE=  To proceed, type the word OVERWRITE (or press Enter to cancel): "
+if /I "!CONFIRM_OVERWRITE!"=="OVERWRITE" (
+    set "FORCE_FLAG=--force"
+    echo  Warning: Cloud overwrite enabled.
+) else (
+    set "FORCE_FLAG="
+    echo  Safe push selected.
+)
+
+:SkipForcePush
+echo.
+echo.
+echo Before sharing your work, Git needs to bundle your edited files 
+echo together and save them into the project's local history.
+echo.
+set /p "WANT_COMMIT=  Save local work before uploading? (Y/N): "
 if /I "!WANT_COMMIT!"=="Y" (
     set /p "PUSH_MSG=  Enter commit message: "
     call git add -A
@@ -1785,11 +1834,17 @@ echo  You are on: !CURRENT_BRANCH!
 echo.
 set /p "REBASE_BR=  Branch to rebase onto: "
 set /p "REBASE_CONFIRM=  This rewrites history. Continue? (Y/N): "
-if /I "!REBASE_CONFIRM!"=="Y" (
-    call git rebase "!REBASE_BR!"
-) else (
+if /I not "!REBASE_CONFIRM!"=="Y" (
     echo  Cancelled.
+    echo.
+    pause
+    goto CatMerge
 )
+call git rebase "!REBASE_BR!"
+if errorlevel 1 (
+    call :HandleRebaseConflicts
+)
+call :PromptForcePush
 echo.
 pause
 goto CatMerge
@@ -1850,14 +1905,17 @@ call git log -10 --oneline
 echo.
 set /p "SQ_N=  How many commits to squash into one? "
 set /p "SQ_CONFIRM=  This rewrites history. Continue? (Y/N): "
-if /I "!SQ_CONFIRM!"=="Y" (
-    call git reset --soft HEAD~!SQ_N!
-    echo.
-    set /p "SQ_MSG=  Enter new commit message: "
-    call git commit -m "!SQ_MSG!"
-) else (
+if /I not "!SQ_CONFIRM!"=="Y" (
     echo  Cancelled.
+    echo.
+    pause
+    goto CatMerge
 )
+call git reset --soft HEAD~!SQ_N!
+echo.
+set /p "SQ_MSG=  Enter new commit message: "
+call git commit -m "!SQ_MSG!"
+call :PromptForcePush
 echo.
 pause
 goto CatMerge
@@ -1923,8 +1981,8 @@ echo  ===========================================================
 echo  ^|  UNDO MISTAKES                                          ^|
 echo  ===========================================================
 echo.
-echo     [1]  Undo last save point (keep my changes)
-echo     [2]  Undo last save point (erase everything)
+echo     [1]  Undo a save point (keep my changes)
+echo     [2]  Undo a save point (erase everything)
 echo     [3]  Create a new save point that reverses an old one
 echo     [4]  Go back to a specific save point
 echo     [5]  Remove untracked files (files Git doesn't know about)
@@ -1952,10 +2010,16 @@ goto CatUndo
 :DoSoftReset
 cls
 echo.
-echo  --- Undo Last Commit (Keep Changes) ---
+echo  --- Undo a Commit (Keep Changes) ---
 echo.
-call git reset --soft HEAD~1
-echo  Last commit undone. Your changes are still staged.
+echo  Recent commits:
+call git log -5 --oneline
+echo.
+set "SR_COMMIT=HEAD"
+set /p "SR_COMMIT=  Enter commit ID to undo (press Enter for last save): "
+call git reset --soft !SR_COMMIT!~1
+echo  Commit undone. Your changes are still staged.
+call :PromptForcePush
 echo.
 pause
 goto CatUndo
@@ -1963,15 +2027,23 @@ goto CatUndo
 :DoHardResetLast
 cls
 echo.
-echo  --- Undo Last Commit (Discard Changes) ---
+echo  --- Undo a Commit (Discard Changes) ---
 echo.
+echo  Recent commits:
+call git log -5 --oneline
+echo.
+set "HR_COMMIT=HEAD"
+set /p "HR_COMMIT=  Enter commit ID to undo (press Enter for last save): "
 set /p "HR_CONFIRM=  This will permanently delete changes. Continue? (Y/N): "
-if /I "!HR_CONFIRM!"=="Y" (
-    call git reset --hard HEAD~1
-    echo  Last commit and changes discarded.
-) else (
+if /I not "!HR_CONFIRM!"=="Y" (
     echo  Cancelled.
+    echo.
+    pause
+    goto CatUndo
 )
+call git reset --hard !HR_COMMIT!~1
+echo  Commit and changes discarded.
+call :PromptForcePush
 echo.
 pause
 goto CatUndo
@@ -2011,6 +2083,7 @@ if "!RESET_MODE!"=="3" (
     set /p "RESET_CONFIRM=  Hard reset will discard all changes. Continue? (Y/N): "
     if /I "!RESET_CONFIRM!"=="Y" call git reset --hard "!RESET_SHA!"
 )
+call :PromptForcePush
 echo.
 pause
 goto CatUndo
@@ -2044,6 +2117,7 @@ call git log -1 --oneline
 echo.
 set /p "AMEND_MSG=  Enter new commit message: "
 call git commit --amend -m "!AMEND_MSG!"
+call :PromptForcePush
 echo.
 pause
 goto CatUndo
@@ -2068,6 +2142,7 @@ if /I "!AMF_FILE!"=="all" (
 call git commit --amend --no-edit
 echo.
 echo  Files added to the last commit.
+call :PromptForcePush
 echo.
 pause
 goto CatUndo
@@ -2691,7 +2766,7 @@ echo.
 if "!CONF_COUNT!"=="0" (
     echo  All conflicts are resolved!
     call git add -A
-    call git commit --no-edit
+    if not "!RESOLVE_NO_COMMIT!"=="1" call git commit --no-edit
     goto :eof
 )
 echo  For each file, you can:
@@ -2756,6 +2831,85 @@ if "!CONF_ACTION!"=="3" (
 )
 echo.
 goto ConflictFileLoop
+
+:PromptForcePush
+echo.
+set /p "SYNC_REMOTE=  Sync changes to remote? (Y/N): "
+if /I not "!SYNC_REMOTE!"=="Y" goto :eof
+for /f "delims=" %%I in ('git rev-parse --abbrev-ref HEAD 2^>nul') do set "CURRENT_BRANCH=%%I"
+echo  Force-updating the cloud (with lease)...
+call git push origin "!CURRENT_BRANCH!" --force-with-lease
+if not errorlevel 1 (
+    echo  Cloud is now in sync!
+    goto :eof
+)
+echo  Force-push with lease failed. The remote may have new changes.
+set /p "FORCE_RETRY=  Force push anyway (overwrite remote)? (Y/N): "
+if /I "!FORCE_RETRY!"=="Y" (
+    call git push origin "!CURRENT_BRANCH!" --force
+    echo  Cloud forcefully updated!
+) else (
+    echo  Push cancelled.
+)
+goto :eof
+
+:PromptForcePushHard
+echo.
+echo  WARNING: This commit may contain sensitive data.
+echo  Syncing to remote is CRITICAL to remove it from the cloud.
+set /p "SYNC_REMOTE=  Force-push to remote now? (Y/N): "
+if /I not "!SYNC_REMOTE!"=="Y" goto :eof
+for /f "delims=" %%I in ('git rev-parse --abbrev-ref HEAD 2^>nul') do set "CURRENT_BRANCH=%%I"
+echo  FORCE-updating the cloud...
+call git push origin "!CURRENT_BRANCH!" --force
+echo  Cloud has been force-updated!
+goto :eof
+
+:DropSpecificCommit
+set "DROP_COMMIT=%~1"
+for /f "delims=" %%H in ('git rev-parse HEAD 2^>nul') do set "HEAD_SHA=%%H"
+for /f "delims=" %%T in ('git rev-parse "!DROP_COMMIT!" 2^>nul') do set "DROP_SHA=%%T"
+if "!HEAD_SHA!"=="!DROP_SHA!" (
+    echo  This is the latest commit. Performing hard reset...
+    call git reset --hard HEAD~1
+    echo  Done! The commit and all its changes have been erased.
+    goto :eof
+)
+echo  Removing commit from the middle of history...
+echo  Preserving all commits that came after it.
+echo.
+echo  [Attempting auto-resolve...]
+call git rebase -X theirs --onto !DROP_SHA!~1 !DROP_SHA!
+if not errorlevel 1 (
+    echo  Done! The commit has been removed from history.
+    goto :eof
+)
+echo  Auto-resolve strategy was not sufficient.
+call :HandleRebaseConflicts
+echo  Done! The commit has been removed from history.
+goto :eof
+
+:HandleRebaseConflicts
+set "REBASE_ACTIVE=0"
+for /f "delims=" %%X in ('git status 2^>nul ^| findstr /C:"rebase in progress"') do set "REBASE_ACTIVE=1"
+if "!REBASE_ACTIVE!"=="0" goto :eof
+echo.
+echo  Trying to auto-resolve remaining conflicts...
+call git checkout --theirs . 2>nul
+call git add -A 2>nul
+call git rebase --continue 2>nul
+set "REBASE_ACTIVE=0"
+for /f "delims=" %%X in ('git status 2^>nul ^| findstr /C:"rebase in progress"') do set "REBASE_ACTIVE=1"
+if "!REBASE_ACTIVE!"=="0" (
+    echo  Auto-resolve succeeded!
+    goto :eof
+)
+echo  Manual resolution needed.
+set "RESOLVE_NO_COMMIT=1"
+call :ResolveConflicts
+set "RESOLVE_NO_COMMIT="
+call git rebase --continue 2>nul
+goto HandleRebaseConflicts
 
 :ExitScript
 cls
