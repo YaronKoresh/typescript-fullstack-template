@@ -19,11 +19,9 @@ jobs:
           node-version: '24'
           cache: 'npm'
 
-      - run: npm ci
+      - run: npm install
 
       - run: npm run check
-
-      - run: npm run clean
 
       - name: Check For Changes
         id: check_changes
