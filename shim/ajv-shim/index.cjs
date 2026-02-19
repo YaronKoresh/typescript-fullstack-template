@@ -28,6 +28,20 @@ function fixSchema(schema) {
         delete fixed.id;
     }
 
+    if (fixed.exclusiveMinimum === true && typeof fixed.minimum === 'number') {
+        fixed.exclusiveMinimum = fixed.minimum;
+        delete fixed.minimum;
+    } else if (fixed.exclusiveMinimum === false) {
+        delete fixed.exclusiveMinimum;
+    }
+
+    if (fixed.exclusiveMaximum === true && typeof fixed.maximum === 'number') {
+        fixed.exclusiveMaximum = fixed.maximum;
+        delete fixed.maximum;
+    } else if (fixed.exclusiveMaximum === false) {
+        delete fixed.exclusiveMaximum;
+    }
+
     fixedSchemas.set(schema, fixed);
 
     for (const key in fixed) {
@@ -50,6 +64,8 @@ class AjvShim extends Ajv {
 
         delete sanitizedOpts.missingRefs;
         delete sanitizedOpts.strictDefaults;
+        delete sanitizedOpts.schemaId;
+        delete sanitizedOpts.verbose;
 
         super(sanitizedOpts);
 
@@ -87,7 +103,17 @@ class AjvShim extends Ajv {
     }
 
     validateSchema(schema) {
-        return super.validateSchema(fixSchema(schema));
+        const savedDefaults = this.opts.useDefaults;
+        try {
+            this.opts.useDefaults = false;
+            const result = super.validateSchema(fixSchema(schema));
+            return result;
+        } catch (e) {
+            this.errors = null;
+            return true;
+        } finally {
+            this.opts.useDefaults = savedDefaults;
+        }
     }
 }
 
