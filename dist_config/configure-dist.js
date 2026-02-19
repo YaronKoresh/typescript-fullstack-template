@@ -18,6 +18,14 @@ const srcLicense = path.join(__dirname, "..", "LICENSE");
 const destLicense = path.join(__dirname, "..", "dist", "LICENSE");
 fs.copyFileSync(srcLicense, destLicense);
 
+const srcIgnore = path.join(__dirname, "..", ".gitignore");
+const destIgnore = path.join(__dirname, "..", "dist", ".gitignore");
+fs.copyFileSync(srcIgnore, destIgnore);
+
+const srcAtt = path.join(__dirname, "..", ".gitattributes");
+const destAtt = path.join(__dirname, "..", "dist", ".gitattributes");
+fs.copyFileSync(srcAtt, destAtt);
+
 const result = spawnSync("npm", ["install"], {
   encoding: "utf8",
   cwd: path.join(__dirname, "..", "dist"),

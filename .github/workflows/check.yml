@@ -32,7 +32,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          if [ -n "$(git status --porcelain)" ]; then
+          git config core.fileMode false
+
+          if ! git diff --exit-code --ignore-all-space; then
             echo "❌ Changes detected in the following files:"
             git status --porcelain
             
