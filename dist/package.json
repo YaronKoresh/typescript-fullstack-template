@@ -1,5 +1,5 @@
 {
-  "name": "my-project-online",
+  "name": "typescript-template-online",
   "version": "1.0.0",
   "description": "A comprehensive platform of something related to anything.",
   "type": "module",
@@ -9,12 +9,10 @@
     "start": "node balancer/index.js",
     "build": "node -v"
   },
-  "license": "UNLICENSED",
+  "license": "SEE LICENSE IN ./LICENSE",
   "private": true,
   "engines": {
     "node": ">=24.0.0"
   },
-  "dependencies": {
-    "@napi-rs/canvas": "npm:@napi-rs/canvas@0.1.92"
-  }
+  "dependencies": {}
 }

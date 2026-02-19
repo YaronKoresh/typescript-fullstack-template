@@ -312,7 +312,7 @@ module.exports = {
   },
   create(context) {
     const options = { ...DEFAULTS, ...(context.options[0] || {}) };
-    const sourceCode = context.getSourceCode();
+    const sourceCode = context.sourceCode;
 
     return {
       JSXAttribute(node) {

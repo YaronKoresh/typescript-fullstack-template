@@ -24,10 +24,11 @@
     "clean": "node -e \"import { execSync } from 'child_process'; import fs from 'fs'; const paths = ['./node_modules']; paths.forEach(p => fs.rmSync(p, { recursive: true, force: true })); execSync('npm cache clean --force', { stdio: 'inherit' })\"",
     "fix-deps": "(node tools/fix-deps.js && npm install --ignore-scripts || (cd .))",
     "fix-code": "npm run generate-types && npm run lint:fix && npm run lint:check && npm run format:fix && npm run format:check && npm run test",
-    "build": "npm run build:bundle && npm run build:client",
+    "build": "npm run build:bundle && npm run build:deps && npm run build:client",
     "prepare": "husky",
     "build:bundle": "tsup",
-    "build:client": "node dist_config/generate-client.js",
+    "build:deps": "node -r dotenv/config dist_config/configure-dist.js",
+    "build:client": "node -r dotenv/config dist_config/generate-client.js",
     "coverage": "vitest run --coverage --passWithNoTests",
     "test": "npm run test:run && npm run test:types",
     "test:run": "vitest run",
@@ -79,8 +80,9 @@
     "@eslint/js": "npm:@eslint/js@10.0.1",
     "@types/node": "npm:@types/node@25.2.0",
     "@vitest/coverage-v8": "npm:@vitest/coverage-v8@4.0.18",
+    "ajv": "file:./shim/ajv-shim",
     "axios": "npm:axios@1.13.5",
-    "eslint": "npm:eslint@9.39.2",
+    "eslint": "npm:eslint@10.0.0",
     "eslint-config-prettier": "npm:eslint-config-prettier@10.1.8",
     "eslint-plugin-import-x": "npm:eslint-plugin-import-x@4.16.1",
     "eslint-plugin-n": "npm:eslint-plugin-n@17.23.2",
@@ -104,11 +106,28 @@
     "vitest": "npm:vitest@4.0.18"
   },
   "overrides": {
+    "eslint": {
+      "ajv": "file:./shim/ajv-shim"
+    },
     "express-rate-limit": {
       "express": "5.2.1"
     },
     "express": {
       "qs": "6.14.2"
+    },
+    "@ts-morph/common": {
+      "minimatch": "file:./shim/minimatch-shim"
+    },
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "file:./shim/minimatch-shim"
+    },
+    "readdir-glob": {
+      "minimatch": "file:./shim/minimatch-shim"
+    },
+    "archiver-utils": {
+      "glob": {
+        "minimatch": "file:./shim/minimatch-shim"
+      }
     }
   }
 }
