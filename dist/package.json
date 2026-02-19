@@ -1,0 +1,18 @@
+{
+  "name": "typescript-template-online",
+  "version": "1.0.0",
+  "description": "A comprehensive platform of something related to anything.",
+  "type": "module",
+  "main": "balancer/index.js",
+  "author": "Yaron Koresh",
+  "scripts": {
+    "start": "node balancer/index.js",
+    "build": "node -v"
+  },
+  "license": "SEE LICENSE IN ./LICENSE",
+  "private": true,
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "dependencies": {}
+}
