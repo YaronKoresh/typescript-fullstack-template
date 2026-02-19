@@ -52,34 +52,42 @@ const getResolvedVersion = (depName, currentRange) => {
   }
 });
 
-if (pkg.overrides) {
-  console.log("Processing overrides...");
-  for (const [caller, overrides] of Object.entries(pkg.overrides)) {
-    for (const [subDep, value] of Object.entries(overrides)) {
-      if (value.startsWith("file:")) {
-        continue;
-      }
-      const topLevelDep =
-        pkg.dependencies?.[subDep] || pkg.devDependencies?.[subDep];
-      const resolved =
-        (value.startsWith("$")
-          ? getResolvedVersion(subDep, topLevelDep)
-          : getResolvedVersion(subDep, value)) ||
-        getResolvedVersion(subDep, "latest");
+const processOverrideEntry = (parentKey, obj) => {
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== null && typeof value === "object" && !Array.isArray(value)) {
+      processOverrideEntry(key, value);
+      continue;
+    }
 
-      if (!resolved) {
-        delete pkg.overrides[caller][subDep];
-        if (Object.keys(pkg.overrides[caller]).length === 0) {
-          delete pkg.overrides[caller];
-        }
-      }
+    if (typeof value !== "string" || value.startsWith("file:")) {
+      continue;
+    }
 
-      if (resolved !== value) {
-        pkg.overrides[caller][subDep] = resolved;
-        console.log(`  ✓ ${caller} > ${subDep}: ${value} -> ${resolved}`);
-      }
+    const topLevelDep = pkg.dependencies?.[key] || pkg.devDependencies?.[key];
+
+    let resolved;
+    if (value.startsWith("$")) {
+      resolved = getResolvedVersion(key, topLevelDep);
+    } else {
+      resolved = getResolvedVersion(key, value);
+    }
+
+    if (!resolved) {
+      resolved = getResolvedVersion(key, "latest");
+    }
+
+    if (resolved && resolved !== value) {
+      obj[key] = resolved;
+      console.log(
+        `  ✓ Override [${parentKey} > ${key}]: ${value} -> ${resolved}`,
+      );
     }
   }
+};
+
+if (pkg.overrides) {
+  console.log("Processing overrides...");
+  processOverrideEntry("root", pkg.overrides);
 }
 
 fs.writeFileSync(PACKAGE_JSON_PATH, JSON.stringify(pkg, null, 2) + "\n");
