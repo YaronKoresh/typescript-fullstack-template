@@ -149,4 +149,4 @@ For detailed technical specifications, refer to the internal documentation suite
 
 ---
 
-**License:** [UCSL-1.0](./LICENSE).
+**License:** [MIT](./LICENSE).

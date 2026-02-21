@@ -9,7 +9,6 @@
     "start": "node balancer/index.js",
     "build": "node -v"
   },
-  "license": "SEE LICENSE IN ./LICENSE",
   "private": true,
   "engines": {
     "node": ">=24.0.0"

@@ -14,10 +14,6 @@ const srcPack = path.join(__dirname, "package.dist.json");
 const destPack = path.join(__dirname, "..", "dist", "package.json");
 fs.copyFileSync(srcPack, destPack);
 
-const srcLicense = path.join(__dirname, "..", "LICENSE");
-const destLicense = path.join(__dirname, "..", "dist", "LICENSE");
-fs.copyFileSync(srcLicense, destLicense);
-
 const result = spawnSync("npm", ["install"], {
   encoding: "utf8",
   cwd: path.join(__dirname, "..", "dist"),
