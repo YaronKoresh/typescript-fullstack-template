@@ -31,7 +31,9 @@ const UnbreakableProcess = function (
   listener: any,
   children: any[] = [],
 ): void {
-  process.on("uncaughtException", (e): void => console.error("Error:", e));
+  process.on("uncaughtException", (e: Error): void =>
+    console.error("Error:", e),
+  );
   process.on("unhandledRejection", (e): void =>
     console.error("Promise Rejection:", e),
   );

@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const getMimeType = function (filePath: string): string {
-  const ext = path.extname(filePath).toLowerCase();
+  const ext: string = path.extname(filePath).toLowerCase();
   const mimeTypes: Record<string, string> = {
     ".jpg": "image/jpeg",
     ".jpeg": "image/jpeg",
@@ -44,12 +44,12 @@ const getMimeType = function (filePath: string): string {
 };
 
 const isImageFile = function (filePath: string): boolean {
-  const ext = path.extname(filePath).toLowerCase();
+  const ext: string = path.extname(filePath).toLowerCase();
   return [".jpg", ".jpeg", ".png", ".gif", ".webp"].includes(ext);
 };
 
 const isTextFile = function (filePath: string): boolean {
-  const ext = path.extname(filePath).toLowerCase();
+  const ext: string = path.extname(filePath).toLowerCase();
   return [
     ".txt",
     ".json",
@@ -90,17 +90,17 @@ const isTextFile = function (filePath: string): boolean {
 };
 
 const isExcelFile = function (filePath: string): boolean {
-  const ext = path.extname(filePath).toLowerCase();
+  const ext: string = path.extname(filePath).toLowerCase();
   return [".xlsx", ".xls", ".csv"].includes(ext);
 };
 
 const isPdfFile = function (filePath: string): boolean {
-  const ext = path.extname(filePath).toLowerCase();
+  const ext: string = path.extname(filePath).toLowerCase();
   return ext === ".pdf";
 };
 
 const isBinaryFile = function (filePath: string): boolean {
-  const ext = path.extname(filePath).toLowerCase();
+  const ext: string = path.extname(filePath).toLowerCase();
   return [
     ".exe",
     ".dll",
@@ -126,16 +126,16 @@ const isBinaryFile = function (filePath: string): boolean {
 };
 
 const readFileAsBase64 = function (filePath: string): string {
-  const absolutePath = path.resolve(filePath);
+  const absolutePath: string = path.resolve(filePath);
   if (!fs.existsSync(absolutePath)) {
     throw new Error(`File not found: ${absolutePath}`);
   }
-  const fileBuffer = fs.readFileSync(absolutePath);
+  const fileBuffer: Buffer = fs.readFileSync(absolutePath);
   return fileBuffer.toString("base64");
 };
 
 const readFileAsText = function (filePath: string): string {
-  const absolutePath = path.resolve(filePath);
+  const absolutePath: string = path.resolve(filePath);
   if (!fs.existsSync(absolutePath)) {
     throw new Error(`File not found: ${absolutePath}`);
   }

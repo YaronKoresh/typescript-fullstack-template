@@ -8,8 +8,8 @@
     "resolveJsonModule": true,
     "strict": false,
     "allowSyntheticDefaultImports": true,
-    "types": [],
-    "noLib": false
+    "noLib": false,
+    "declaration": true
   },
   "include": ["../src/**/*", "../test/**/*", "../tools/**/*"],
   "exclude": ["../node_modules", "../dist"]

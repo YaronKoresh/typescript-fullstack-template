@@ -1,57 +1,57 @@
-import { defineConfig } from 'tsup';
-import { builtinModules } from 'node:module';
 import fs from 'node:fs/promises';
+import { builtinModules } from 'node:module';
 import path from 'node:path';
 import process from 'node:process';
 import postcss from 'postcss';
 import postcssModules from 'postcss-modules';
+import { defineConfig } from 'tsup';
 
-const globalCssMapping = {};
+const globalCssMapping: {} = {};
 
 const customCssObfuscation = {
-  name: 'custom-css-obfuscation',
-  setup(build) {
-    const CUSTOM_NAMESPACE = 'custom-css-module';
-    build.onResolve({ filter: /\.module\.css$/ }, (args) => {
-      const resolveDir = args.resolveDir || process.cwd();
-      const fullPath = path.resolve(resolveDir, args.path);
-      return {
-        path: fullPath + ".obfuscated",
-        namespace: CUSTOM_NAMESPACE
-      };
-    });
+    name: 'custom-css-obfuscation',
+    setup(build): void {
+        const CUSTOM_NAMESPACE = 'custom-css-module' as const;
+        build.onResolve({ filter: /\.module\.css$/ }, (args): { path: string; namespace: "custom-css-module"; } => {
+            const resolveDir = args.resolveDir || process.cwd();
+            const fullPath: string = path.resolve(resolveDir, args.path);
+            return {
+                path: fullPath + ".obfuscated",
+                namespace: CUSTOM_NAMESPACE
+            };
+        });
 
-    build.onLoad({ filter: /.*/, namespace: CUSTOM_NAMESPACE }, async (args) => {
-      const realPath = args.path.replace(/\.obfuscated$/, '');
-      const css = await fs.readFile(realPath, 'utf8');
+        build.onLoad({ filter: /.*/, namespace: CUSTOM_NAMESPACE }, async (args): Promise<{ contents: string; loader: string; resolveDir: string; }> => {
+            const realPath = args.path.replace(/\.obfuscated$/, '');
+            const css: string = await fs.readFile(realPath, 'utf8');
 
-      let rawMapping = {};
+            let rawMapping: {} = {};
 
-      const result = await postcss([
-        postcssModules({
-          generateScopedName: '[hash:base64:5]',
-          getJSON: (_, json) => {
-            rawMapping = json;
-          }
-        })
-      ]).process(css, { from: realPath });
+            const result = await postcss([
+                postcssModules({
+                    generateScopedName: '[hash:base64:5]',
+                    getJSON: (_, json): void => {
+                        rawMapping = json;
+                    }
+                })
+            ]).process(css, { from: realPath });
 
-      Object.assign(globalCssMapping, rawMapping);
+            Object.assign(globalCssMapping, rawMapping);
 
-      const camelCaseMapping = {};
-      for (const [key, value] of Object.entries(rawMapping)) {
-        const camelKey = key.replace(/[-_]+(.)?/g, (_, c) => (c ? c.toUpperCase() : ""));
-        camelCaseMapping[camelKey] = value;
-      }
+            const camelCaseMapping: {} = {};
+            for (const [key, value] of Object.entries(rawMapping)) {
+                const camelKey: string = key.replace(/[-_]+(.)?/g, (_: string, c) => (c ? c.toUpperCase() : ""));
+                camelCaseMapping[camelKey] = value;
+            }
 
-      const namedExportsLines = [];
-      for (const [key, value] of Object.entries(camelCaseMapping)) {
-        if (/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key)) {
-           namedExportsLines.push(`export const ${key} = ${JSON.stringify(value)};`);
-        }
-      }
+            const namedExportsLines = [];
+            for (const [key, value] of Object.entries(camelCaseMapping)) {
+                if (/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key)) {
+                    namedExportsLines.push(`export const ${key} = ${JSON.stringify(value)};`);
+                }
+            }
 
-      const contents = `
+            const contents: string = `
         const css = ${JSON.stringify(result.css)};
         const mapping = ${JSON.stringify(camelCaseMapping)};
         
@@ -67,25 +67,25 @@ const customCssObfuscation = {
         export default mapping;
       `;
 
-      return {
-        contents,
-        loader: 'js',
-        resolveDir: path.dirname(realPath),
-      };
-    });
+            return {
+                contents,
+                loader: 'js',
+                resolveDir: path.dirname(realPath),
+            };
+        });
 
-    build.onEnd(async () => {
-      const distPath = path.resolve(process.cwd(), 'dist/client');
-      await fs.mkdir(distPath, { recursive: true });
-      
-      await fs.writeFile(
-        path.join(distPath, 'css-map.json'), 
-        JSON.stringify(globalCssMapping, null, 2)
-      );
-      console.log('⚡ CSS Manifest saved to dist/client/css-map.json');
-    });
+        build.onEnd(async (): Promise<void> => {
+            const distPath: string = path.resolve(process.cwd(), 'dist/client');
+            await fs.mkdir(distPath, { recursive: true });
 
-  },
+            await fs.writeFile(
+                path.join(distPath, 'css-map.json'),
+                JSON.stringify(globalCssMapping, null, 2)
+            );
+            console.log('⚡ CSS Manifest saved to dist/client/css-map.json');
+        });
+
+    },
 };
 
 export default defineConfig([{
@@ -93,22 +93,22 @@ export default defineConfig([{
     platform: 'browser',
     shims: false,
     plugins: [
-      {
-        name: 'block-node-builtins',
-        setup(build) {
-          const nodes = new Set(builtinModules);
-          build.onResolve({ filter: /^node:|^[a-z]+$/ }, (args) => {
-            const moduleName = args.path.replace(/^node:/, '');
-            if (nodes.has(moduleName)) {
-              return { 
-                errors: [{ 
-                  text: `FORBIDDEN: Node.js module "${args.path}" detected in client build. (Imported by ${args.importer})` 
-                }] 
-              };
+        {
+            name: 'block-node-builtins',
+            setup(build): void {
+                const nodes: Set<string> = new Set(builtinModules);
+                build.onResolve({ filter: /^node:|^[a-z]+$/ }, (args): { errors: { text: string; }[]; } => {
+                    const moduleName = args.path.replace(/^node:/, '');
+                    if (nodes.has(moduleName)) {
+                        return {
+                            errors: [{
+                                text: `FORBIDDEN: Node.js module "${args.path}" detected in client build. (Imported by ${args.importer})`
+                            }]
+                        };
+                    }
+                });
             }
-          });
         }
-      }
     ],
     entry: ['src/client/index.ts'],
     external: ['./src/server/**/*'],
@@ -116,19 +116,19 @@ export default defineConfig([{
     tsconfig: 'tsconfig/client.json',
     clean: true,
     format: ["iife"],
-    globalName: "ChatEngines",
+    globalName: "TypeScriptTemplate",
     dts: false,
     splitting: false,
     sourcemap: false,
     minify: true,
     injectStyle: false,
     esbuildPlugins: [customCssObfuscation],
-    esbuildOptions(options) {
-      options.platform = 'browser';
+    esbuildOptions(options): void {
+        options.platform = 'browser';
     },
     treeshake: true,
     define: {
-      'process.env.NODE_ENV': JSON.stringify('production')
+        'process.env.NODE_ENV': JSON.stringify('production')
     }
 }, {
     name: 'server',
@@ -141,7 +141,7 @@ export default defineConfig([{
     clean: true,
     format: ["esm"],
     banner: {
-      js: `import { createRequire } from 'module'; const require = createRequire(import.meta.url);`,
+        js: `import { createRequire } from 'module'; const require = createRequire(import.meta.url);`,
     },
     dts: false,
     splitting: false,
@@ -159,7 +159,7 @@ export default defineConfig([{
     clean: true,
     format: ["esm"],
     banner: {
-      js: `import { createRequire } from 'module'; const require = createRequire(import.meta.url);`,
+        js: `import { createRequire } from 'module'; const require = createRequire(import.meta.url);`,
     },
     dts: false,
     splitting: false,

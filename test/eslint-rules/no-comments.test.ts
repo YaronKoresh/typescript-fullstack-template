@@ -3,7 +3,7 @@ import { createRequire } from "node:module";
 import { RuleTester } from "eslint";
 import { describe, test } from "vitest";
 
-const require = createRequire(import.meta.url);
+const require: NodeJS.Require = createRequire(import.meta.url);
 const rule = require("../../tools/eslint-local-rules/rules/no-comments.cjs");
 
 const ruleTester = new RuleTester({
@@ -13,8 +13,8 @@ const ruleTester = new RuleTester({
   },
 });
 
-describe("no-comments rule", () => {
-  test("should disallow comments in code", () => {
+describe("no-comments rule", (): void => {
+  test("should disallow comments in code", (): void => {
     ruleTester.run("no-comments", rule, {
       valid: [
         {

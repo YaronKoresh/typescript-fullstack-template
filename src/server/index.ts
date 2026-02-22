@@ -20,8 +20,8 @@ import { HTML_DIR } from "./constants.js";
 import { sessionController } from "./controllers/session-controller.js";
 import { systemController } from "./controllers/system-controller.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __filename: string = fileURLToPath(import.meta.url);
+const __dirname: string = path.dirname(__filename);
 
 const app = express();
 
@@ -133,11 +133,11 @@ app.get(["/favicon.ico", "/favicon.png"], (_req, res): void => {
 });
 
 app.get("/", async (req, res, next): Promise<void> => {
-  const pagePath = path.join(HTML_DIR, "en", "index.html");
+  const pagePath: string = path.join(HTML_DIR, "en", "index.html");
 
   if (fs.existsSync(pagePath)) {
     try {
-      const processedHtml = fs.readFileSync(pagePath, "utf8");
+      const processedHtml: string = fs.readFileSync(pagePath, "utf8");
       res.type("html").send(processedHtml);
     } catch (err) {
       const errorMessage: string =

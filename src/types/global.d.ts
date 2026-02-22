@@ -154,6 +154,12 @@ interface Window {
   applyFilters: () => void;
 }
 
+declare global {
+  var DOMMatrix: any;
+  var DOMPoint: any;
+  var DOMRect: any;
+}
+
 declare module "*.module.css" {
   const classes: { [key: string]: string };
   export = classes;

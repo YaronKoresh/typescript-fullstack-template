@@ -4,12 +4,12 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const env = function (key, defaultValue: string = "") {
+const env = function (key, defaultValue: string = ""): string {
   return process.env[key] || defaultValue;
 };
 
 const _envBool = function (key, defaultValue: boolean = false): boolean {
-  const val = process.env[key];
+  const val: string = process.env[key];
   if (val === undefined || val === "") return defaultValue;
   return val === "true" || val === "1";
 };

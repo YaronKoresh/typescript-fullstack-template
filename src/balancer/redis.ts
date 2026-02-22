@@ -1,13 +1,14 @@
-import { execSync, spawn } from "node:child_process";
+import { ChildProcess, execSync, spawn } from "node:child_process";
 import fs from "node:fs";
+import { IncomingMessage } from "node:http";
 import https from "node:https";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __filename: string = fileURLToPath(import.meta.url);
+const __dirname: string = path.dirname(__filename);
 
 const redisVersion = "v2026.2.14" as const;
 
@@ -29,7 +30,7 @@ const downloadFile = (url: string, dest: string): Promise<void> => {
       reject: (reason?: any) => void,
     ): void => {
       https
-        .get(url, (response): void | Promise<void> => {
+        .get(url, (response: IncomingMessage): void | Promise<void> => {
           if (
             response.statusCode &&
             response.statusCode >= 300 &&
@@ -45,7 +46,7 @@ const downloadFile = (url: string, dest: string): Promise<void> => {
             return;
           }
 
-          const file = fs.createWriteStream(dest);
+          const file: fs.WriteStream = fs.createWriteStream(dest);
           response.pipe(file);
           file.on("finish", (): void => {
             if (os.platform() !== "win32") {
@@ -59,7 +60,7 @@ const downloadFile = (url: string, dest: string): Promise<void> => {
             resolve();
           });
         })
-        .on("error", (err): void => {
+        .on("error", (err: Error): void => {
           fs.unlink(dest, (): void => {
             void 0;
           });
@@ -71,7 +72,7 @@ const downloadFile = (url: string, dest: string): Promise<void> => {
 
 const getDownloadUrls = (): Array<string> => {
   const baseUrl: string = `https://github.com/YaronKoresh/build-redis/releases/download/${redisVersion}`;
-  const platform = os.platform();
+  const platform: NodeJS.Platform = os.platform();
 
   if (platform === "win32")
     return [
@@ -87,7 +88,10 @@ const getDownloadUrls = (): Array<string> => {
 const isRedisRunning = (port: number = 6379): Promise<boolean> => {
   return new Promise(
     (resolve: (value: boolean | PromiseLike<boolean>) => void): void => {
-      const client = net.createConnection({ port, host: "0.0.0.0" });
+      const client: net.Socket = net.createConnection({
+        port,
+        host: "0.0.0.0",
+      });
       client.on("connect", (): void => {
         client.end();
         resolve(true);
@@ -114,17 +118,17 @@ const initRedis = async (): Promise<void> => {
     }
   }
 
-  const child = spawn(execPath, [], {
+  const child: ChildProcess = spawn(execPath, [], {
     detached: true,
     stdio: "inherit",
     shell: platform === "win32",
   });
 
-  child.on("error", (err): void => {
+  child.on("error", (err: Error): void => {
     console.error("Failed to spawn Redis process:", err);
   });
 
-  child.on("exit", (code, signal): void => {
+  child.on("exit", (code: number, signal: NodeJS.Signals): void => {
     if (code !== 0) {
       console.error(
         `Redis process exited unexpectedly with code ${code} and signal ${signal}`,

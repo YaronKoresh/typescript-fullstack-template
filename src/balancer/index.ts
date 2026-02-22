@@ -13,8 +13,8 @@ import { UnbreakableProcess } from "../shared/process-utils.js";
 import { BALANCER_CHILDS, BASE_PORT } from "./constants.js";
 import initRedis, { isRedisRunning } from "./redis.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __filename: string = fileURLToPath(import.meta.url);
+const __dirname: string = path.dirname(__filename);
 
 let childCount: number = Number(BALANCER_CHILDS);
 const basePort: number = Number(BASE_PORT);
@@ -39,9 +39,9 @@ const bootstrap = async (): Promise<void> => {
   let currentChild: number = 0;
   let childIndex: number = 0;
 
-  const spawnWorker = (port: number) => {
-    const scriptPath = path.join(__dirname, "..", "server", "index.js");
-    const child = spawn(
+  const spawnWorker = (port: number): ChildProcess => {
+    const scriptPath: string = path.join(__dirname, "..", "server", "index.js");
+    const child: ChildProcess = spawn(
       "node",
       [scriptPath, String(port), String(childIndex)],
       {
@@ -51,7 +51,7 @@ const bootstrap = async (): Promise<void> => {
       },
     );
 
-    child.on("error", (err): void => {
+    child.on("error", (err: Error): void => {
       console.error(`❌ Failed to spawn worker on port ${port}:`, err);
     });
 
@@ -83,7 +83,7 @@ const bootstrap = async (): Promise<void> => {
   };
 
   const distribute = async (socket: net.Socket): Promise<void> => {
-    const clientIp = socket.remoteAddress || "unknown";
+    const clientIp: string = socket.remoteAddress || "unknown";
     let targetPort: number = 0;
     let attempts: number = 0;
 
@@ -115,7 +115,10 @@ const bootstrap = async (): Promise<void> => {
         return tryConnect();
       }
 
-      const to = net.createConnection({ port: targetPort, host: "0.0.0.0" });
+      const to: net.Socket = net.createConnection({
+        port: targetPort,
+        host: "0.0.0.0",
+      });
       to.setTimeout(30000);
 
       to.once("error", (): void => {
@@ -145,41 +148,51 @@ const bootstrap = async (): Promise<void> => {
         socket.pipe(to).pipe(socket);
       });
 
-      socket.once("error", () => to.destroy());
+      socket.once("error", (): net.Socket => to.destroy());
     };
 
     tryConnect();
   };
 
-  const balancer = net.createServer((socket): void => {
+  const balancer: net.Server = net.createServer((socket: net.Socket): void => {
     distribute(socket).catch((err): void => {
       console.error(err);
       socket.destroy();
     });
   });
 
-  const dashboard = http.createServer((req, res): void => {
-    if (req.url === "/status") {
-      res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(
-        JSON.stringify(
-          {
-            pool: {
-              total: childCount,
-              active: children.size,
-              dead: deadWorkers.size,
+  const dashboard: http.Server<
+    typeof http.IncomingMessage,
+    typeof http.ServerResponse
+  > = http.createServer(
+    (
+      req: http.IncomingMessage,
+      res: http.ServerResponse<http.IncomingMessage> & {
+        req: http.IncomingMessage;
+      },
+    ): void => {
+      if (req.url === "/status") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify(
+            {
+              pool: {
+                total: childCount,
+                active: children.size,
+                dead: deadWorkers.size,
+              },
+              workers: Array.from(children.keys()),
+              quarantine: Array.from(deadWorkers.keys()),
             },
-            workers: Array.from(children.keys()),
-            quarantine: Array.from(deadWorkers.keys()),
-          },
-          null,
-          2,
-        ),
-      );
-      return;
-    }
-    res.writeHead(404).end();
-  });
+            null,
+            2,
+          ),
+        );
+        return;
+      }
+      res.writeHead(404).end();
+    },
+  );
 
   await Promise.all([
     new Promise<void>(

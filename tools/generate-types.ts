@@ -40,27 +40,61 @@ const CONFIG: GeneratorConfig = {
   removeRedundantTypes: true,
 };
 
+const hasNullOrUndefined = (type: Type): boolean => {
+  if (type.isNull() || type.isUndefined()) return true;
+  if (type.isUnion()) {
+    return type.getUnionTypes().some((t) => t.isNull() || t.isUndefined());
+  }
+  return false;
+};
+
+const fixStrictNullAssignments = (
+  declaration: VariableDeclaration,
+  tracker: ChangeTracker,
+): void => {
+  const typeNode = declaration.getTypeNode();
+  const initializer = declaration.getInitializer();
+
+  if (!typeNode || !initializer) return;
+
+  const explicitType = declaration.getType();
+  const initializerType = initializer.getType();
+
+  if (
+    hasNullOrUndefined(initializerType) &&
+    !hasNullOrUndefined(explicitType)
+  ) {
+    const fmt: number =
+      TypeFormatFlags.NoTruncation | TypeFormatFlags.NoTypeReduction;
+
+    const newTypeText = initializerType.getText(declaration, fmt);
+
+    declaration.setType(newTypeText);
+    tracker.count++;
+  }
+};
+
 const resolveImportsInType = (
   sourceFile: SourceFile,
   typeText: string,
 ): string => {
   if (!CONFIG.autoFixImports) return typeText;
 
-  const importRegex = /import\("([^"]+)"\)\.([a-zA-Z0-9_$]+)/g;
-  let updatedTypeText = typeText;
+  const importRegex: RegExp = /import\("([^"]+)"\)\.([a-zA-Z0-9_$]+)/g;
+  let updatedTypeText: string = typeText;
   let match;
 
   while ((match = importRegex.exec(typeText)) !== null) {
     const [fullMatch, modulePath, exportName] = match;
 
     const existingImport = sourceFile.getImportDeclaration(
-      (decl) => decl.getModuleSpecifierValue() === modulePath,
+      (decl): boolean => decl.getModuleSpecifierValue() === modulePath,
     );
 
     if (existingImport) {
       const hasNamedImport = existingImport
         .getNamedImports()
-        .some((ni) => ni.getName() === exportName);
+        .some((ni): boolean => ni.getName() === exportName);
 
       if (!hasNamedImport) {
         existingImport.addNamedImport(exportName);
@@ -121,7 +155,7 @@ const enforceConstAssertion = (
   }
 
   const kind = initializer.getKind();
-  const isLiteral =
+  const isLiteral: boolean =
     kind === SyntaxKind.StringLiteral ||
     kind === SyntaxKind.NumericLiteral ||
     kind === SyntaxKind.TrueKeyword ||
@@ -151,11 +185,11 @@ const cleanupRedundantTypes = (
   const initializer = declaration.getInitializer();
   if (!initializer) return;
 
-  const isFunction =
+  const isFunction: boolean =
     initializer.getKind() === SyntaxKind.ArrowFunction ||
     initializer.getKind() === SyntaxKind.FunctionExpression;
 
-  const isLiteral =
+  const isLiteral: boolean =
     initializer.getKind() === SyntaxKind.StringLiteral ||
     initializer.getKind() === SyntaxKind.NumericLiteral ||
     initializer.getKind() === SyntaxKind.TrueKeyword ||
@@ -167,10 +201,8 @@ const cleanupRedundantTypes = (
     const explicitType = declaration.getType();
     const inferredType = initializer.getType();
 
-    const fmt =
-      TypeFormatFlags.NoTruncation |
-      TypeFormatFlags.UseAliasDefinedOutsideCurrentScope |
-      TypeFormatFlags.NoTypeReduction;
+    const fmt: number =
+      TypeFormatFlags.NoTruncation | TypeFormatFlags.NoTypeReduction;
 
     if (
       explicitType.getText(declaration, fmt) ===
@@ -190,8 +222,6 @@ const processTypedNode = (
   tracker: ChangeTracker,
   isConst: boolean = false,
 ): void => {
-  if (node.getTypeNode()) return;
-
   if (Node.isVariableDeclaration(node)) {
     const initializer = node.getInitializer();
     if (
@@ -206,9 +236,8 @@ const processTypedNode = (
   try {
     const type: Type = node.getType();
 
-    const typeFormatFlags =
+    const typeFormatFlags: number =
       TypeFormatFlags.NoTruncation |
-      TypeFormatFlags.UseAliasDefinedOutsideCurrentScope |
       TypeFormatFlags.NoTypeReduction |
       TypeFormatFlags.WriteArrayAsGenericType;
 
@@ -242,10 +271,8 @@ const processFunctionLike = (
     try {
       const returnType: Type = func.getReturnType();
 
-      const fmt =
-        TypeFormatFlags.NoTruncation |
-        TypeFormatFlags.UseAliasDefinedOutsideCurrentScope |
-        TypeFormatFlags.NoTypeReduction;
+      const fmt: number =
+        TypeFormatFlags.NoTruncation | TypeFormatFlags.NoTypeReduction;
 
       let returnTypeText: string = returnType.getText(func, fmt);
 
@@ -275,12 +302,12 @@ const run = async (): Promise<void> => {
 
   const project: Project = new Project({
     tsConfigFilePath: path.join(__dirname, "..", "tsconfig", "tsconfig.json"),
-    skipAddingFilesFromTsConfig: true,
+    skipAddingFilesFromTsConfig: false,
   });
 
   project.addSourceFilesAtPaths("src/**/*.ts");
 
-  const sourceFiles: SourceFile[] = project.getSourceFiles();
+  const sourceFiles: Array<SourceFile> = project.getSourceFiles();
   console.log(`📁 Found ${sourceFiles.length} source files to analyze\n`);
 
   let totalChanges: number = 0;
@@ -290,7 +317,7 @@ const run = async (): Promise<void> => {
     const relativePath: string = path.relative(process.cwd(), filePath);
     const tracker: ChangeTracker = { count: 0 };
 
-    const variableDeclarations: VariableDeclaration[] =
+    const variableDeclarations: Array<VariableDeclaration> =
       sourceFile.getDescendantsOfKind(SyntaxKind.VariableDeclaration);
 
     for (const declaration of variableDeclarations) {
@@ -298,8 +325,10 @@ const run = async (): Promise<void> => {
       if (declaration.getParent()?.getKind() === SyntaxKind.ForStatement)
         continue;
 
-      const handledConst = enforceConstAssertion(declaration, tracker);
+      const handledConst: boolean = enforceConstAssertion(declaration, tracker);
       if (handledConst) continue;
+
+      fixStrictNullAssignments(declaration, tracker);
 
       cleanupRedundantTypes(declaration, tracker);
 
@@ -311,7 +340,7 @@ const run = async (): Promise<void> => {
       processTypedNode(declaration, sourceFile, tracker, isConst);
     }
 
-    const functionLikes: FunctionLikeDeclaration[] = [
+    const functionLikes: Array<FunctionLikeDeclaration> = [
       ...sourceFile.getFunctions(),
       ...sourceFile.getDescendantsOfKind(SyntaxKind.ArrowFunction),
       ...sourceFile.getDescendantsOfKind(SyntaxKind.FunctionExpression),
@@ -324,7 +353,7 @@ const run = async (): Promise<void> => {
       processFunctionLike(func, sourceFile, tracker);
     }
 
-    const classProperties: PropertyDeclaration[] =
+    const classProperties: Array<PropertyDeclaration> =
       sourceFile.getDescendantsOfKind(SyntaxKind.PropertyDeclaration);
 
     for (const prop of classProperties) {
@@ -335,6 +364,7 @@ const run = async (): Promise<void> => {
 
     if (tracker.count > 0) {
       if (CONFIG.autoFixImports) {
+        sourceFile.fixMissingImports();
         sourceFile.organizeImports();
       }
 
