@@ -2356,6 +2356,19 @@ if /I "!CONFIRM_OVERWRITE!"=="OVERWRITE" (
 
 :SkipForcePush
 echo.
+echo Automated quality checks are important, but they can be skipped when needed.
+echo.
+set "SKIP_VERIFICATION="
+set /p "SKIP_VERIFICATION= Skip automated quality checks? Y or N: "
+if /I "!SKIP_VERIFICATION!"=="Y" (
+    set "NO_VERIFY=--no-verify"
+    echo Quality checks disabled.
+) else (
+    set "NO_VERIFY="
+    echo Using default quality checks.
+)
+
+echo.
 echo Before sharing, you should bundle your changes into a save point.
 echo.
 set "WANT_COMMIT="
@@ -2365,7 +2378,7 @@ if /I "!WANT_COMMIT!"=="Y" (
     set /p "PUSH_MSG= Describe your changes: "
     if "!PUSH_MSG!"=="" set "PUSH_MSG=Quick upload save"
     call git add -A
-    call git commit -m "!PUSH_MSG!"
+    call git commit -m "!PUSH_MSG!" !NO_VERIFY!
 )
 
 if not defined FORCE_FLAG (
@@ -2401,7 +2414,7 @@ if not defined FORCE_FLAG (
 
 echo.
 echo  Uploading to origin/!TARGET_BRANCH!...
-call git push origin "!TARGET_BRANCH!" !FORCE_FLAG! !PUBLISH_FLAG!
+call git push origin "!TARGET_BRANCH!" !FORCE_FLAG! !PUBLISH_FLAG! !NO_VERIFY!
 
 if errorlevel 1 (
     echo.
