@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "dependencies": {
-    "minimatch": "npm:minimatch@10.2.1"
+    "minimatch": "npm:minimatch@10.2.4"
   },
   "main": "./index.cjs",
   "exports": {

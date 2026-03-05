@@ -73,7 +73,7 @@
     "glob": "npm:glob@13.0.6",
     "helmet": "npm:helmet@8.1.0",
     "ioredis": "npm:ioredis@5.9.2",
-    "multer": "npm:multer@2.0.2",
+    "multer": "npm:multer@2.1.1",
     "unzipper": "npm:unzipper@0.12.3"
   },
   "devDependencies": {
@@ -114,6 +114,13 @@
     },
     "express": {
       "qs": "6.14.2"
+    },
+    "minimatch": "file:./shim/minimatch-shim",
+    "@eslint/config-array": {
+      "minimatch": "file:./shim/minimatch-shim"
+    },
+    "test-exclude": {
+      "minimatch": "file:./shim/minimatch-shim"
     },
     "@ts-morph/common": {
       "minimatch": "file:./shim/minimatch-shim"
