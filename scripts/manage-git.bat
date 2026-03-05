@@ -56,12 +56,13 @@ echo  [8]  Undo - Fix mistakes or revert changes
 echo  [9]  Versions - Manage tags and releases
 echo [10]  Subprojects - Manage nested repositories
 echo [11]  Advanced - Power user tools
+echo [12]  Help - Resolve Conflicts
 echo.
 echo  [0]  Exit
 echo.
 echo -----------------------------------------------------------
 set "CAT="
-set /p "CAT= Enter a number 0-11: "
+set /p "CAT= Enter a number 0-12: "
 
 if "!CAT!"=="1" goto CatQuick
 if "!CAT!"=="2" goto CatStart
@@ -74,6 +75,10 @@ if "!CAT!"=="8" goto CatUndo
 if "!CAT!"=="9" goto CatTags
 if "!CAT!"=="10" goto CatSubmodules
 if "!CAT!"=="11" goto CatAdvanced
+if "!CAT!"=="12" (
+    call ResolveConflicts
+    goto MainMenu
+)
 if "!CAT!"=="0" goto ExitScript
 
 echo.
@@ -139,7 +144,7 @@ echo ===========================================================
 echo            S A V E   A N D   U P L O A D
 echo ===========================================================
 echo.
-echo  This will mark all changes, create a save point, 
+echo  This will mark all changes, create a save point,
 echo  get latest team updates, and upload your work.
 echo.
 
@@ -152,7 +157,9 @@ call git status --short
 echo.
 
 set "QSAVE_MSG="
-set /p "QSAVE_MSG= Describe what you changed: "
+call :SuggestCommitMsg
+set /p "QSAVE_MSG= Describe what you changed [!SCM_SUGGESTION!]: "
+if "!QSAVE_MSG!"=="" set "QSAVE_MSG=!SCM_SUGGESTION!"
 
 if "!QSAVE_MSG!"=="" (
     echo.
@@ -170,7 +177,7 @@ call git commit -m "!QSAVE_MSG!"
 
 echo  Step 3 of 4 - Getting latest updates from the cloud...
 echo  This ensures your work is compatible with the team.
-call git pull origin "!CURRENT_BRANCH!" --no-rebase 2>nul
+call :GitNetworkOp "git pull origin !CURRENT_BRANCH! --no-rebase"
 
 if errorlevel 1 (
     echo.
@@ -179,12 +186,12 @@ if errorlevel 1 (
 )
 
 echo  Step 4 of 4 - Uploading your work...
-call git push origin "!CURRENT_BRANCH!" -u
+call :GitNetworkOp "git push origin !CURRENT_BRANCH! -u"
 
 if errorlevel 1 (
     echo.
-    echo  Upload failed. 
-    echo  This usually happens if someone else pushed changes 
+    echo  Upload failed.
+    echo  This usually happens if someone else pushed changes
     echo  while you were working. Try the Update action first.
 ) else (
     echo.
@@ -202,7 +209,7 @@ echo ===========================================================
 echo            G E T   L A T E S T   U P D A T E S
 echo ===========================================================
 echo.
-echo  This will check for team updates and download them 
+echo  This will check for team updates and download them
 echo  into your current work area.
 echo.
 
@@ -218,23 +225,12 @@ echo  Current Branch: !CURRENT_BRANCH!
 echo.
 
 echo  Step 1 of 2 - Checking for updates...
-call git fetch origin
+call :GitNetworkOp "git fetch origin"
 
-echo  Step 2 of 2 - Downloading updates...
-echo  Checking if your local files are ready to be updated...
+echo  Step 2 of 3 - Securing your uncommitted work...
+call :AutoStash
 
-:: Check if there are local changes that might block a pull
-set "HAS_CHANGES="
-for /f "delims=" %%i in ('git status --porcelain') do set "HAS_CHANGES=1"
-
-if defined HAS_CHANGES (
-    echo.
-    echo  Notice: You have unsaved changes. 
-    echo  Git may refuse to update if these changes overlap 
-    echo  with the team updates.
-    echo.
-)
-
+echo  Step 3 of 3 - Downloading updates...
 call git pull origin "!CURRENT_BRANCH!" --no-rebase
 
 if errorlevel 1 (
@@ -243,6 +239,8 @@ if errorlevel 1 (
     echo  The team changed the same lines you are working on.
     call :ResolveConflicts
 )
+
+call :AutoStashPop
 
 echo.
 echo  Done. Your project is now up to date.
@@ -333,7 +331,7 @@ set /p "QFIN_TARGET= Which branch receives the work? Enter for main: "
 :: Ensure we aren't trying to merge a branch into itself
 if "!FEATURE_BRANCH!"=="!QFIN_TARGET!" (
     echo.
-    echo Error: Cannot merge !SOURCE_BR! into itself.
+    echo Error: Cannot merge !FEATURE_BRANCH! into itself.
     pause
     goto CatQuick
 )
@@ -393,13 +391,13 @@ set "QFIN_CLEANUP="
 set /p "QFIN_CLEANUP= Delete the task branch !FEATURE_BRANCH!? Y or N: "
 
 if /I "!QFIN_CLEANUP!"=="Y" (
-    
+
     echo Removing cloud !FEATURE_BRANCH! branch...
     call git push origin --delete "!FEATURE_BRANCH!" 2>nul
 
     echo Removing local !FEATURE_BRANCH! branch...
     call git branch -d "!FEATURE_BRANCH!"
-    
+
     echo.
     echo Cleanup complete.
 ) else (
@@ -447,7 +445,7 @@ echo ===========================================================
 echo             W I P E   A L L   C H A N G E S
 echo ===========================================================
 echo.
-echo  This will permanently delete all work you have done 
+echo  This will permanently delete all work you have done
 echo  since your last save point.
 echo.
 echo  Files to be reset or deleted:
@@ -460,13 +458,13 @@ set /p "QUNDO_CONFIRM= This action is permanent. Erase everything? Y or N: "
 if /I "!QUNDO_CONFIRM!"=="Y" (
     echo.
     echo  Cleaning up work area...
-    
+
     :: Restore tracked files
     call git restore . 2>nul || call git checkout . 2>nul
-    
+
     :: Remove new untracked files and folders
     call git clean -fd
-    
+
     echo.
     echo  Done. Your project is back to how it was at your last save.
 ) else (
@@ -618,7 +616,7 @@ echo ===========================================================
 echo             D O W N L O A D   P R O J E C T
 echo ===========================================================
 echo.
-echo  This will download a complete copy of a project 
+echo  This will download a complete copy of a project
 echo  from a cloud link (URL) to your computer.
 echo.
 
@@ -647,7 +645,7 @@ if "!QDLDIR!"=="" (
 
 if errorlevel 1 (
     echo.
-    echo  Download failed. 
+    echo  Download failed.
     echo  Check the URL and your internet connection.
 ) else (
     echo.
@@ -720,7 +718,7 @@ goto CatQuick
 
 :DoUndoErase
 echo.
-echo  WARNING: This will permanently erase the save point 
+echo  WARNING: This will permanently erase the save point
 echo  from your project history.
 echo.
 set "QUC_CONFIRM="
@@ -768,11 +766,11 @@ call git reset --soft !QUC_COMMIT!~1
 call git restore --staged "!QUC_FILE!" 2>nul || call git reset HEAD "!QUC_FILE!" 2>nul
 
 echo  Step 3 of 3 - Re-saving remaining work...
-call git commit -m "!QSAVE_MSG!"
+call git commit -m "!QUC_MSG!"
 
 echo.
 echo  Done. !QUC_FILE! has been removed from the save point.
-echo  The file still exists on your computer, but it is no 
+echo  The file still exists on your computer, but it is no
 echo  longer included in that specific save.
 echo.
 
@@ -981,7 +979,7 @@ echo ===========================================================
 echo            T E S T   A   P U L L   R E Q U E S T
 echo ===========================================================
 echo.
-echo  This will download a teammate's pull request so you can 
+echo  This will download a teammate's pull request so you can
 echo  test their changes on your computer.
 echo.
 
@@ -1001,7 +999,7 @@ call git fetch origin pull/!QTPR_NUM!/head:pr-!QTPR_NUM!
 if errorlevel 1 (
     echo.
     echo  Could not download PR !QTPR_NUM!.
-    echo  Check that the number is correct and that the 
+    echo  Check that the number is correct and that the
     echo  project is hosted on GitHub.
     echo.
     pause
@@ -1332,7 +1330,7 @@ echo ===========================================================
 echo                        B R A N C H E S
 echo ===========================================================
 echo.
-echo  A branch is a parallel copy of your project where you can 
+echo  A branch is a parallel copy of your project where you can
 echo  work safely without affecting the main version.
 echo.
 echo  [1]  List Branches - Show all local and cloud branches
@@ -1437,8 +1435,8 @@ echo  Available branches:
 call git branch
 echo.
 
-set "SW_BR="
-set /p "SW_BR= Enter the branch name to move to: "
+call :PickBranch
+set "SW_BR=!PB_RESULT!"
 
 if "!SW_BR!"=="" (
     echo Error: No branch name entered.
@@ -1447,14 +1445,18 @@ if "!SW_BR!"=="" (
 )
 
 echo.
-echo  Checking for unsaved work before switching...
+echo  Securing uncommitted work before switching...
+call :AutoStash
+
 call git checkout "!SW_BR!"
 
 if errorlevel 1 (
     echo.
-    echo  Switch failed. 
-    echo  You likely have unsaved changes that would be 
-    echo  overwritten. Save or Undo your work first.
+    echo  Switch failed. Restoring stash...
+    call :AutoStashPop
+) else (
+    call :AutoStashPop
+    echo  Switched to !SW_BR! successfully.
 )
 
 echo.
@@ -1497,7 +1499,7 @@ echo  Step 3 of 3 - Uploading the new name to the cloud...
 call git push origin -u "!CURRENT_BRANCH!"
 
 echo.
-echo  Success. The branch is now named !CURRENT_BRANCH! 
+echo  Success. The branch is now named !CURRENT_BRANCH!
 echo  on both your computer and the cloud server.
 echo.
 pause
@@ -1537,7 +1539,7 @@ if /I "!FORCE_DEL!"=="Y" (
 
 if errorlevel 1 (
     echo.
-    echo  The branch was not deleted. This usually happens if 
+    echo  The branch was not deleted. This usually happens if
     echo  it has work that hasn't been merged into main yet.
     pause
     goto CatBranch
@@ -1587,7 +1589,7 @@ call git checkout --track "!TRACK_BR!"
 
 if errorlevel 1 (
     echo.
-    echo  Failed to track branch. 
+    echo  Failed to track branch.
     echo  Make sure you typed the name exactly as shown above.
 )
 
@@ -1641,7 +1643,7 @@ echo ===========================================================
 echo            S A F E   T O   D E L E T E
 echo ===========================================================
 echo.
-echo  These branches have already been combined into your 
+echo  These branches have already been combined into your
 echo  current work area and are safe to remove.
 echo.
 
@@ -1658,7 +1660,7 @@ echo ===========================================================
 echo            A C T I V E   W O R K
 echo ===========================================================
 echo.
-echo  These branches contain changes that have NOT been 
+echo  These branches contain changes that have NOT been
 echo  combined into your current branch yet.
 echo.
 
@@ -1677,7 +1679,7 @@ echo ===========================================================
 echo            D E L E T E   C L O U D   B R A N C H
 echo ===========================================================
 echo.
-echo  This removes a branch from the cloud server. 
+echo  This removes a branch from the cloud server.
 echo  Teammates will no longer see this branch.
 echo.
 echo  Cloud branches:
@@ -1707,10 +1709,10 @@ if /I "!RDBR_CONFIRM!"=="Y" (
     echo.
     echo  Removing branch from the cloud...
     call git push "!RDBR_REMOTE!" --delete "!RDBR_NAME!"
-    
+
     if errorlevel 1 (
         echo.
-        echo  Failed to delete. The branch may already be gone 
+        echo  Failed to delete. The branch may already be gone
         echo  or you might not have permission to delete it.
     ) else (
         echo.
@@ -1853,7 +1855,7 @@ echo  Unmarking !UNSTAGE_F!...
 call git restore --staged "!UNSTAGE_F!" 2>nul || call git reset HEAD "!UNSTAGE_F!" 2>nul
 
 echo.
-echo  Done. The file has been unmarked. 
+echo  Done. The file has been unmarked.
 echo  Your work is still on your computer, just not in the next save.
 echo.
 pause
@@ -1870,7 +1872,9 @@ echo  This saves all your 'Marked' files into your history.
 echo.
 
 set "COMMIT_MSG="
-set /p "COMMIT_MSG= Describe what you changed: "
+call :SuggestCommitMsg
+set /p "COMMIT_MSG= Describe what you changed [!SCM_SUGGESTION!]: "
+if "!COMMIT_MSG!"=="" set "COMMIT_MSG=!SCM_SUGGESTION!"
 
 if "!COMMIT_MSG!"=="" (
     echo.
@@ -1885,7 +1889,7 @@ call git commit -m "!COMMIT_MSG!"
 
 if errorlevel 1 (
     echo.
-    echo  Save failed. Make sure you have marked (staged) 
+    echo  Save failed. Make sure you have marked
     echo  your files first.
 ) else (
     echo.
@@ -1907,7 +1911,9 @@ echo  This marks ALL current changes and saves them instantly.
 echo.
 
 set "QC_MSG="
-set /p "QC_MSG= Describe what you changed: "
+call :SuggestCommitMsg
+set /p "QC_MSG= Describe what you changed [!SCM_SUGGESTION!]: "
+if "!QC_MSG!"=="" set "QC_MSG=!SCM_SUGGESTION!"
 
 if "!QC_MSG!"=="" (
     echo.
@@ -1963,7 +1969,7 @@ echo ===========================================================
 echo             R E T R I E V E   W O R K
 echo ===========================================================
 echo.
-echo  This takes work off your shelf and puts it back 
+echo  This takes work off your shelf and puts it back
 echo  into your project.
 echo.
 echo  Available items on shelf:
@@ -1984,8 +1990,8 @@ if "!STASH_IDX!"=="" (
 
 if errorlevel 1 (
     echo.
-    echo  Could not retrieve work. 
-    echo  This usually happens if your current project files 
+    echo  Could not retrieve work.
+    echo  This usually happens if your current project files
     echo  conflict with the work on the shelf.
 )
 
@@ -2223,10 +2229,10 @@ if /I "!DALL_CONFIRM!"=="Y" (
     echo.
     echo  Step 1 of 2 - Restoring modified files...
     call git restore .
-    
+
     echo  Step 2 of 2 - Removing new untracked files...
     call git clean -fd
-    
+
     echo.
     echo  Success. All local changes have been wiped.
 ) else (
@@ -2339,8 +2345,8 @@ if /I not "!FORCE_PUSH!"=="Y" (
 
 echo.
 echo  ####################  DANGER  ####################
-echo  This will OVERWRITE the cloud project with your 
-echo  local version. Any work on the cloud that you 
+echo  This will OVERWRITE the cloud project with your
+echo  local version. Any work on the cloud that you
 echo  do not have on your computer will be DELETED.
 echo  ##################################################
 echo.
@@ -2385,8 +2391,8 @@ if not defined FORCE_FLAG (
     if not "!PUBLISH_FLAG!"=="-u" (
         echo.
         echo  Checking for cloud updates before uploading...
-        call git pull origin "!TARGET_BRANCH!" --no-rebase
-        
+        call :GitNetworkOp "git pull origin !TARGET_BRANCH! --no-rebase"
+
         if errorlevel 1 (
             echo.
             echo  -----------------------------------------------------------
@@ -2394,10 +2400,10 @@ if not defined FORCE_FLAG (
             echo  We must merge their work into yours before you can upload.
             echo  -----------------------------------------------------------
             pause
-            
+
             :: Launch your Conflict Resolution Tool
             call :ResolveConflicts
-            
+
             :: Check if the conflict was actually resolved or if they aborted
             call git status --porcelain | findstr "^UU ^AA ^DU ^UD" >nul
             if not errorlevel 1 (
@@ -2414,11 +2420,11 @@ if not defined FORCE_FLAG (
 
 echo.
 echo  Uploading to origin/!TARGET_BRANCH!...
-call git push origin "!TARGET_BRANCH!" !FORCE_FLAG! !PUBLISH_FLAG! !NO_VERIFY!
+call :GitNetworkOp "git push origin !TARGET_BRANCH! !FORCE_FLAG! !PUBLISH_FLAG! !NO_VERIFY!"
 
 if errorlevel 1 (
     echo.
-    echo  Upload failed. 
+    echo  Upload failed.
     echo  If this was not a conflict, check your internet connection
     echo  or your permissions for this repository.
 ) else (
@@ -2437,7 +2443,7 @@ echo ===========================================================
 echo             U P D A T E   P R O J E C T   (PULL)
 echo ===========================================================
 echo.
-echo  This downloads the latest changes from the cloud and 
+echo  This downloads the latest changes from the cloud and
 echo  combines them with your local work.
 echo.
 
@@ -2448,32 +2454,16 @@ set /p "PULL_BR= Which branch to download? Enter for !CURRENT_BRANCH!: "
 if "!PULL_BR!"=="" set "PULL_BR=!CURRENT_BRANCH!"
 
 echo.
-echo  Checking for unsaved work before updating...
-echo.
-
-:: Check if there are local changes that might block the pull
-call git diff --quiet
-if errorlevel 1 (
-    echo  Warning: You have unsaved changes. 
-    echo  If the cloud has changed the same files, the update may fail.
-    echo.
-    set "SAVE_FIRST="
-    set /p "SAVE_FIRST= Would you like to create a Save Point first? Y or N: "
-    if /I "!SAVE_FIRST!"=="Y" (
-        set "PULL_MSG="
-        set /p "PULL_MSG= Describe your current work: "
-        call git add -A
-        call git commit -m "!PULL_MSG!"
-    )
-)
+echo  Securing uncommitted work...
+call :AutoStash
 
 echo.
 echo  Downloading and merging changes from origin/!PULL_BR!...
-call git pull origin "!PULL_BR!" --no-rebase
+call :GitNetworkOp "git pull origin !PULL_BR! --no-rebase"
 
 if errorlevel 1 (
     echo.
-    echo  Update stopped. There is a conflict between your 
+    echo  Update stopped. There is a conflict between your
     echo  work and the cloud version.
     echo.
     pause
@@ -2482,6 +2472,8 @@ if errorlevel 1 (
     echo.
     echo  Success. Your project is now up to date.
 )
+
+call :AutoStashPop
 
 echo.
 pause
@@ -2494,14 +2486,14 @@ echo ===========================================================
 echo             C H E C K   F O R   U P D A T E S
 echo ===========================================================
 echo.
-echo  This asks the cloud if there are any new changes, 
+echo  This asks the cloud if there are any new changes,
 echo  but it does NOT change your files yet.
 echo.
 
-call git fetch --all
+call :GitNetworkOp "git fetch --all"
 
 echo.
-echo  Check complete. You can now see what others have done 
+echo  Check complete. You can now see what others have done
 echo  without affecting your current work.
 echo.
 pause
@@ -2681,7 +2673,7 @@ echo ===========================================================
 echo            C L E A N   S T A L E   L I N K S
 echo ===========================================================
 echo.
-echo  This removes "ghost" branches from your list that were 
+echo  This removes "ghost" branches from your list that were
 echo  already deleted from the cloud by your teammates.
 echo.
 
@@ -2706,7 +2698,7 @@ echo          U P L O A D   A L L   B R A N C H E S
 echo ===========================================================
 echo.
 echo  This sends every branch on your computer to the cloud.
-echo  It is a great way to ensure your entire project is 
+echo  It is a great way to ensure your entire project is
 echo  backed up and synced.
 echo.
 
@@ -2719,7 +2711,7 @@ call git push "!PALL_REM!" --all
 
 if errorlevel 1 (
     echo.
-    echo  Upload failed. Check your internet connection or 
+    echo  Upload failed. Check your internet connection or
     echo  permissions for this repository.
 ) else (
     echo.
@@ -2816,7 +2808,7 @@ echo ===========================================================
 echo             D E T A I L E D   H I S T O R Y
 echo ===========================================================
 echo.
-echo  This view shows who made each save point, the date, 
+echo  This view shows who made each save point, the date,
 echo  and the full description.
 echo.
 
@@ -2908,10 +2900,10 @@ if "!DIFF_CH!"=="3" (
     set /p "DIFF_A= Enter the name of the first branch: "
     set "DIFF_B="
     set /p "DIFF_B= Enter the name of the second branch: "
-    
+
     if "!DIFF_A!"=="" goto :DiffError
     if "!DIFF_B!"=="" goto :DiffError
-    
+
     echo.
     echo  Comparing !DIFF_A! against !DIFF_B!...
     echo  Note: Press 'Q' to exit the view.
@@ -3073,7 +3065,7 @@ echo             T I M E   M A C H I N E   (REFLOG)
 echo ===========================================================
 echo.
 echo  This is a master record of every move you have made.
-echo  Even if you deleted a branch or made a mistake, you can 
+echo  Even if you deleted a branch or made a mistake, you can
 echo  usually find the "lost" version here.
 echo.
 
@@ -3102,7 +3094,7 @@ echo ===========================================================
 echo             P R O J E C T   C O N T R I B U T O R S
 echo ===========================================================
 echo.
-echo  This list shows everyone who has contributed to this 
+echo  This list shows everyone who has contributed to this
 echo  project and how many save points they have created.
 echo.
 echo  Rank  ^|  Name and Email
@@ -3122,7 +3114,7 @@ echo ===========================================================
 echo          V I E W   F I L E   F R O M   P A S T
 echo ===========================================================
 echo.
-echo  This lets you see what a specific file looked like at 
+echo  This lets you see what a specific file looked like at
 echo  any point in your project's history.
 echo.
 
@@ -3218,7 +3210,7 @@ echo ===========================================================
 echo            W H A T   G I T   I S   W A T C H I N G
 echo ===========================================================
 echo.
-echo  This is a master list of every file currently being 
+echo  This is a master list of every file currently being
 echo  tracked and protected by your project's history.
 echo.
 
@@ -3226,7 +3218,7 @@ call git ls-files
 
 echo.
 echo -----------------------------------------------------------
-echo  Note: Files in your folder but not on this list are 
+echo  Note: Files in your folder but not on this list are
 echo  untracked (ignored) by Git.
 echo.
 pause
@@ -3239,7 +3231,7 @@ echo ===========================================================
 echo             S A V E   P O I N T   I M P A C T
 echo ===========================================================
 echo.
-echo  This shows exactly how many lines were added or removed 
+echo  This shows exactly how many lines were added or removed
 echo  in each of your recent save points.
 echo.
 
@@ -3432,7 +3424,7 @@ if /I "!BR_CLEANUP!"=="Y" (
 
     echo Removing cloud !SOURCE_BR! branch...
     call git push origin --delete "!SOURCE_BR!" 2>nul
-    
+
     echo Removing local !SOURCE_BR! branch...
     call git branch -d "!SOURCE_BR!"
 
@@ -3459,7 +3451,7 @@ echo.
 for /f "delims=" %%I in ('git rev-parse --abbrev-ref HEAD 2^>nul') do set "CURRENT_BRANCH=%%I"
 echo  Target: Moving your current work on '!CURRENT_BRANCH!'
 echo.
-echo  Rebasing is a way to "clean up" your timeline so it looks 
+echo  Rebasing is a way to "clean up" your timeline so it looks
 echo  like you started your work on the very latest version.
 echo.
 
@@ -3490,12 +3482,14 @@ if /I "!REBASE_STATUS!"=="PRIVATE" (
     echo  Confirmed. Starting relocation onto !REBASE_BR!...
 ) else (
     echo.
-    echo  Action Cancelled. 
-    echo  Since your work is already out there, 'Merge' is the 
+    echo  Action Cancelled.
+    echo  Since your work is already out there, 'Merge' is the
     echo  proper way to combine changes without breaking the project.
     pause
     goto CatMerge
 )
+
+call :AutoStash
 
 call git rebase "!REBASE_BR!"
 
@@ -3510,6 +3504,8 @@ if errorlevel 1 (
     echo.
     echo  Success. Your work has been relocated.
 )
+
+call :AutoStashPop
 
 call :PromptForcePush
 
@@ -3528,7 +3524,7 @@ for /f "delims=" %%I in ('git rev-parse --abbrev-ref HEAD 2^>nul') do set "CURRE
 echo  You are currently standing on: !CURRENT_BRANCH!
 echo.
 echo  This type of merge creates a permanent "Merge Point" in your
-echo  history, making it easy to see exactly when a feature was 
+echo  history, making it easy to see exactly when a feature was
 echo  finished and added to the main project.
 echo.
 
@@ -3602,7 +3598,7 @@ if exist ".git\MERGE_HEAD" (
     set "MERGE_ACTIVE=1"
     set /a COUNT+=1
     set "OPT_!COUNT!=MERGE"
-    echo  [!COUNT!] Active MERGE detected - (You are currently combining branches)
+    echo  [!COUNT!] Active MERGE detected - You are currently combining branches
 )
 
 :: Check for Rebase
@@ -3611,7 +3607,7 @@ if exist ".git\rebase-apply" set "REBASE_ACTIVE=1"
 if "!REBASE_ACTIVE!"=="1" (
     set /a COUNT+=1
     set "OPT_!COUNT!=REBASE"
-    echo  [!COUNT!] Active REBASE detected - (You are currently relocating work)
+    echo  [!COUNT!] Active REBASE detected - You are currently relocating work
 )
 
 if "!COUNT!"=="0" (
@@ -3631,14 +3627,14 @@ if /I "!ABORT_CHOICE!"=="X" goto CatMerge
 
 if defined OPT_!ABORT_CHOICE! (
     set "ACTION=!OPT_%ABORT_CHOICE%!"
-    
+
     if "!ACTION!"=="MERGE" (
         echo.
         echo  Cancelling Merge...
         call git merge --abort
         echo  Done. Your files have been reset to before the merge started.
     )
-    
+
     if "!ACTION!"=="REBASE" (
         echo.
         echo  Cancelling Rebase...
@@ -3680,7 +3676,7 @@ git status --porcelain | findstr "^UU ^AA ^DU ^UD" >nul
 if not errorlevel 1 (
     echo.
     echo  STOP: You still have files with conflict markers.
-    echo  Please fix them and 'Mark' them (git add) before resuming.
+    echo  Please fix them and mark them before resuming.
     pause
     goto CatMerge
 )
@@ -3694,8 +3690,8 @@ call git !RESUME_CMD! --no-edit
 
 if errorlevel 1 (
     echo.
-    echo  The resume failed. This sometimes happens if there are 
-    echo  more overlaps in the next set of changes. 
+    echo  The resume failed. This sometimes happens if there are
+    echo  more overlaps in the next set of changes.
     echo  Check the menu again for new conflicting files.
 ) else (
     echo.
@@ -3713,7 +3709,7 @@ echo ===========================================================
 echo            G R A B   A   S A V E   P O I N T
 echo ===========================================================
 echo.
-echo  Cherry-picking lets you copy one specific change from 
+echo  Cherry-picking lets you copy one specific change from
 echo  another branch without merging everything.
 echo.
 echo  Recent History (Across all branches):
@@ -3757,7 +3753,7 @@ echo ===========================================================
 echo             C L E A N   U P   H I S T O R Y
 echo ===========================================================
 echo.
-echo  Squashing combines several small save points into one 
+echo  Squashing combines several small save points into one
 echo  single, clean description. Great for hiding "Oops" saves.
 echo.
 echo  Recent History:
@@ -3786,7 +3782,7 @@ set /p "SQ_STATUS= Type your status (PRIVATE or PUBLISHED): "
 
 if /I not "!SQ_STATUS!"=="PRIVATE" (
     echo.
-    echo  Cancelled. You should not squash saves that are 
+    echo  Cancelled. You should not squash saves that are
     echo  already on the cloud, as it will break sync for others.
     pause
     goto CatMerge
@@ -3809,83 +3805,6 @@ echo.
 
 :: Since history was rewritten, a force-push is needed if they push later
 call :PromptForcePush
-
-echo.
-pause
-goto CatMerge
-
-:DoCherryPickMulti
-cls
-echo.
-echo ===========================================================
-echo          C O P Y   A   R A N G E   O F   S A V E S
-echo ===========================================================
-echo.
-echo  This lets you grab a whole sequence of changes at once.
-echo.
-echo  Recent History (Across all branches):
-echo -----------------------------------------------------------
-call git log --all -15 --oneline
-echo -----------------------------------------------------------
-echo.
-echo  NOTE: To include the very first save point in your range, 
-echo  select the ID of the save IMMEDIATELY BEFORE it.
-echo.
-
-set "CPM_FROM="
-set /p "CPM_FROM= Enter the ID BEFORE the start of your range: "
-set "CPM_TO="
-set /p "CPM_TO= Enter the ID of the LAST save in your range: "
-
-if "!CPM_FROM!"=="" goto :CPM_Error
-if "!CPM_TO!"=="" goto :CPM_Error
-
-echo.
-echo  Attempting to copy range from !CPM_FROM! to !CPM_TO!...
-call git cherry-pick "!CPM_FROM!".."!CPM_TO!"
-
-if errorlevel 1 (
-    echo.
-    echo  -----------------------------------------------------------
-    echo  STUCK: Overlapping changes detected during the range!
-    echo  The process is paused. Check the menu for conflicting files.
-    echo  -----------------------------------------------------------
-) else (
-    echo.
-    echo  Success. The range of changes has been copied.
-)
-
-echo.
-pause
-goto CatMerge
-
-:CPM_Error
-echo.
-echo  Error: Both a Start and End ID are required.
-pause
-goto CatMerge
-
-:DoCherryPickAbort
-cls
-echo.
-echo ===========================================================
-echo          C A N C E L   C O P Y   (ABORT)
-echo ===========================================================
-echo.
-echo  Use this if the cherry-pick is too complex or you 
-echo  selected the wrong range. 
-echo.
-echo  Your project will return to how it was before you 
-echo  tried to copy these changes.
-echo.
-
-call git cherry-pick --abort
-
-if errorlevel 1 (
-    echo  No active copy process was found to cancel.
-) else (
-    echo  Success. The copy process has been cancelled.
-)
 
 echo.
 pause
@@ -3953,7 +3872,7 @@ echo  Un-saving !SR_COMMIT!...
 call git reset --soft !SR_COMMIT!~1
 
 echo.
-echo  Success. The save point is gone, but your work is still 
+echo  Success. The save point is gone, but your work is still
 echo  here. You can find your files in the 'Waiting Area'.
 echo.
 
@@ -3981,7 +3900,7 @@ if "!HR_COMMIT!"=="" set "HR_COMMIT=HEAD"
 
 echo.
 echo  ===== DANGER =====
-echo  This will PERMANENTLY DELETE the work inside 
+echo  This will PERMANENTLY DELETE the work inside
 echo  this save point and any unsaved changes.
 echo  You cannot "Undo" this delete easily.
 echo.
@@ -4017,8 +3936,8 @@ echo ===========================================================
 echo            R E V E R S E   A   S A V E   (SAFE)
 echo ===========================================================
 echo.
-echo  This creates a NEW save point that does the exact opposite 
-echo  of an old one. It is the SAFEST way to undo changes that 
+echo  This creates a NEW save point that does the exact opposite
+echo  of an old one. It is the SAFEST way to undo changes that
 echo  you have already shared with a team.
 echo.
 echo  Recent History:
@@ -4041,7 +3960,7 @@ call git revert "!REV_SHA!" --no-edit
 
 if errorlevel 1 (
     echo.
-    echo  Note: If this failed, it is likely because newer changes 
+    echo  Note: If this failed, it is likely because newer changes
     echo  depend on the code you are trying to reverse.
 ) else (
     echo.
@@ -4059,8 +3978,8 @@ echo ===========================================================
 echo            T R A V E L   B A C K   I N   T I M E
 echo ===========================================================
 echo.
-echo  This jumps your entire project back to a specific point 
-echo  in history. 
+echo  This jumps your entire project back to a specific point
+echo  in history.
 echo.
 echo  Recent History:
 call git log -10 --oneline
@@ -4086,11 +4005,11 @@ set "RESET_MODE="
 set /p "RESET_MODE= Select a number (1-3): "
 
 if "!RESET_MODE!"=="1" (
-    echo  Jumping back... (Work is safe)
+    echo  Jumping back... Work is safe
     call git reset --soft "!RESET_SHA!"
 )
 if "!RESET_MODE!"=="2" (
-    echo  Jumping back... (Work is safe)
+    echo  Jumping back... Work is safe
     call git reset --mixed "!RESET_SHA!"
 )
 if "!RESET_MODE!"=="3" (
@@ -4120,7 +4039,7 @@ echo ===========================================================
 echo             C L E A N U P   T E S T   F I L E S
 echo ===========================================================
 echo.
-echo  This removes files that are NOT being tracked by Git 
+echo  This removes files that are NOT being tracked by Git
 echo  (like temporary notes, test logs, or build files).
 echo.
 echo  Searching for untracked items...
@@ -4187,7 +4106,7 @@ echo ===========================================================
 echo            A D D   M I S S I N G   F I L E S
 echo ===========================================================
 echo.
-echo  Did you forget to include a file in your last save? 
+echo  Did you forget to include a file in your last save?
 echo  This "sneaks" it in without creating a new save point.
 echo.
 echo  Current Last Save:
@@ -4279,7 +4198,7 @@ echo            E M E R G E N C Y   R E C O V E R Y
 echo ===========================================================
 echo.
 echo  This is your "Safety Net." Even if you deleted a branch
-echo  or did a 'Hard Undo', Git keeps a secret log of where 
+echo  or did a 'Hard Undo', Git keeps a secret log of where
 echo  you have been for the last 30 days.
 echo.
 echo  Recent Movements (Look for the IDs on the left):
@@ -4311,7 +4230,7 @@ if "!RREC_MODE!"=="1" (
     set "RREC_BR="
     set /p "RREC_BR= Enter a name for the new 'Rescue' branch: "
     if "!RREC_BR!"=="" set "RREC_BR=rescued-work"
-    
+
     echo  Creating branch and switching you over...
     call git checkout -b "!RREC_BR!" "!RREC_SHA!"
     echo.
@@ -4357,8 +4276,8 @@ if "!CH!"=="1" goto DoTagList
 if "!CH!"=="2" goto DoTagShow
 if "!CH!"=="3" goto DoTagLight
 if "!CH!"=="4" goto DoTagAnnotated
-if "!CH!"=="5" goto DoTagCommit
-if "!CH!"=="6" goto DoTagPush
+if "!CH!"=="5" goto DoTagPast
+if "!CH!"=="6" goto DoTagPushOne
 if "!CH!"=="7" goto DoTagPushAll
 if "!CH!"=="8" goto DoTagDelete
 if "!CH!"=="9" goto DoTagDeleteRemote
@@ -4376,7 +4295,7 @@ echo ===========================================================
 echo             P R O J E C T   M I L E S T O N E S
 echo ===========================================================
 echo.
-echo  These are the important version labels (like v1.0) 
+echo  These are the important version labels (like v1.0)
 echo  you have placed on your project's history.
 echo.
 echo  Current Tags:
@@ -4424,7 +4343,7 @@ echo ===========================================================
 echo          O F F I C I A L   R E L E A S E   (HEAVY)
 echo ===========================================================
 echo.
-echo  Use this for major milestones. It stores the date, 
+echo  Use this for major milestones. It stores the date,
 echo  your name, and a specific release message.
 echo.
 
@@ -4456,7 +4375,7 @@ echo ===========================================================
 echo            R E M O V E   L O C A L   L A B E L
 echo ===========================================================
 echo.
-echo  This deletes the version name from your computer. 
+echo  This deletes the version name from your computer.
 echo  It does NOT delete the code inside that version.
 echo.
 echo  Current Local Versions:
@@ -4547,7 +4466,7 @@ echo            D E L E T E   F R O M   T H E   C L O U D
 echo ===========================================================
 echo.
 echo  This removes a version label from the Cloud (GitHub).
-echo  Use this if you uploaded a version by mistake or 
+echo  Use this if you uploaded a version by mistake or
 echo  if you need to rename a release.
 echo.
 
@@ -4614,7 +4533,7 @@ echo ===========================================================
 echo          L A B E L   A   P A S T   V E R S I O N
 echo ===========================================================
 echo.
-echo  Forgot to tag a release? You can pick any save point 
+echo  Forgot to tag a release? You can pick any save point
 echo   from your history and give it a version name now.
 echo.
 echo  Recent History:
@@ -4699,7 +4618,7 @@ echo ===========================================================
 echo            L I N K   E X T E R N A L   P R O J E C T
 echo ===========================================================
 echo.
-echo  This "plugs in" another Git project as a folder inside 
+echo  This "plugs in" another Git project as a folder inside
 echo  your own. Perfect for shared libraries or tools.
 echo.
 
@@ -4732,8 +4651,8 @@ echo ===========================================================
 echo           W A K E   U P   S U B M O D U L E S
 echo ===========================================================
 echo.
-echo  Just downloaded this project? Submodule folders often 
-echo  start out empty. This "wakes them up" and gets them 
+echo  Just downloaded this project? Submodule folders often
+echo  start out empty. This "wakes them up" and gets them
 echo  ready to download their contents.
 echo.
 
@@ -4766,7 +4685,7 @@ if "!SUBU_CHOICE!"=="1" (
     call git submodule update --init
 )
 if "!SUBU_CHOICE!"=="2" (
-    echo  Deep updating (Recursive)...
+    echo  Deep/Recursive updating...
     call git submodule update --init --recursive
 )
 if "!SUBU_CHOICE!"=="3" (
@@ -4807,7 +4726,7 @@ echo            U N L I N K   S U B M O D U L E
 echo ===========================================================
 echo.
 echo  This "unplugs" the external project from your folder.
-echo  The files will be removed, but the link remains in 
+echo  The files will be removed, but the link remains in
 echo  your project history so you can "Plug it in" later.
 echo.
 echo  Current Links:
@@ -4845,8 +4764,8 @@ echo ===========================================================
 echo          R E P A I R   C O N N E C T I O N S
 echo ===========================================================
 echo.
-echo  Use this if an external project changed its web address 
-echo  (URL). It updates your local settings to match the 
+echo  Use this if an external project changed its web address
+echo  (URL). It updates your local settings to match the
 echo  latest project configuration.
 echo.
 
@@ -4865,7 +4784,7 @@ echo ===========================================================
 echo          D O W N L O A D   W I T H   L I N K S
 echo ===========================================================
 echo.
-echo  This downloads a project AND all of its external 
+echo  This downloads a project AND all of its external
 echo  linked sub-projects at the same time.
 echo.
 
@@ -4906,13 +4825,13 @@ echo  --- FIND ^& PORTABILITY ---          --- WORKSPACES (WORKTREE) ---
 echo  [1] Search Code (Grep)              [6] Multi-Task (New Folder)
 echo  [2] Find Bug (Bisect)               [7] List Active Folders
 echo  [3] Export (Zip/Tar)                [8] Close Extra Folder
-echo  [4] Create Patch File               
+echo  [4] Create Patch File
 echo  [5] Apply Patch File                --- MAINTENANCE ^& INFO ---
 echo                                      [9] Check if file is Ignored
 echo  --- SYSTEM ^& EXPERT ---             [10] Optimize (Clean Cache)
 echo  [13] Custom Command                 [11] Health Check (Fsck)
 echo  [14] View Exclusions                [12] Storage/Space Info
-echo  [15] View Shortcuts (Aliases)       
+echo  [15] View Shortcuts (Aliases)
 echo.
 echo -----------------------------------------------------------
 echo  [0] BACK TO MAIN MENU
@@ -4950,7 +4869,7 @@ echo ===========================================================
 echo             S E A R C H   I N   C O D E
 echo ===========================================================
 echo.
-echo  This quickly finds every line of code that contains 
+echo  This quickly finds every line of code that contains
 echo  your search term across your entire project.
 echo.
 
@@ -4988,21 +4907,21 @@ if exist ".git\BISECT_START" set "BISECT_ACTIVE=1"
 if "!BISECT_ACTIVE!"=="0" (
     echo  [ STATUS: READY TO START ]
     echo.
-    echo  1. Identify a version that is BROKEN (usually right now).
+    echo  1. Identify a version that is BROKEN - usually right now.
     echo  2. Identify a version from the past that was WORKING.
     echo.
     echo  [1] START HUNT - Click here to begin
     echo  [0] CANCEL     - Go back
 ) else (
     echo  [ STATUS: HUNTING... ]
-    echo  Git has moved your files to a specific point in time. 
+    echo  Git has moved your files to a specific point in time.
     echo  Test your code now: Is the bug there?
     echo.
     echo  [2] STILL BROKEN   - The bug is still here
     echo  [3] FIXED/WORKING  - The bug is gone in this version
     echo.
     echo  --- OPTIONS ---
-    echo  [5] SKIP   - Can't test this one (e.g. it won't compile)
+    echo  [5] SKIP   - Can't test this one, e.g. it won't compile
     echo  [4] STOP   - Give up and return to the present
 )
 
@@ -5046,7 +4965,7 @@ echo ===========================================================
 echo             P A C K A G E   P R O J E C T
 echo ===========================================================
 echo.
-echo  This creates a clean ZIP or TAR file of your project 
+echo  This creates a clean ZIP or TAR file of your project
 echo  without including the bulky '.git' history folder.
 echo  Perfect for sending your code to someone else.
 echo.
@@ -5077,7 +4996,7 @@ echo            E X P O R T   C H A N G E S   (PATCH)
 echo ===========================================================
 echo.
 echo  This creates a portable file containing your changes.
-echo  You can send this file to a teammate to "plug in" 
+echo  You can send this file to a teammate to "plug in"
 echo  your work without using a Cloud branch.
 echo.
 echo  Recent History:
@@ -5106,7 +5025,7 @@ echo ===========================================================
 echo            I M P O R T   C H A N G E S   (PATCH)
 echo ===========================================================
 echo.
-echo  This takes a '.patch' file sent by someone else and 
+echo  This takes a '.patch' file sent by someone else and
 echo  applies their changes to your current files.
 echo.
 
@@ -5144,7 +5063,7 @@ echo ===========================================================
 echo            O P E N   S E P A R A T E   F O L D E R
 echo ===========================================================
 echo.
-echo  This creates a NEW folder on your computer where you can 
+echo  This creates a NEW folder on your computer where you can
 echo  work on a DIFFERENT branch at the same time.
 echo.
 
@@ -5161,7 +5080,7 @@ echo  Creating separate workspace...
 call git worktree add "!WT_PATH!" "!WT_BR!"
 
 echo.
-echo  Success. You now have a second copy of your project 
+echo  Success. You now have a second copy of your project
 echo  at !WT_PATH! running the '!WT_BR!' branch.
 echo.
 pause
@@ -5174,7 +5093,7 @@ echo ===========================================================
 echo            A C T I V E   W O R K S P A C E S
 echo ===========================================================
 echo.
-echo  This shows all the folders currently linked to this 
+echo  This shows all the folders currently linked to this
 echo  project's history.
 echo.
 echo -----------------------------------------------------------
@@ -5192,7 +5111,7 @@ echo            C L O S E   W O R K S P A C E
 echo ===========================================================
 echo.
 echo  Finished with your separate folder? This unlinks it.
-echo  Note: This will not delete the files if they have 
+echo  Note: This will not delete the files if they have
 echo  unsaved changes.
 echo.
 echo  Current Workspaces:
@@ -5231,8 +5150,8 @@ echo ===========================================================
 echo            W H Y   I S   I T   I G N O R E D ?
 echo ===========================================================
 echo.
-echo  If a file isn't showing up in your saves, it might be 
-echo  blocked by your '.gitignore' file. Use this to find out 
+echo  If a file isn't showing up in your saves, it might be
+echo  blocked by your '.gitignore' file. Use this to find out
 echo  exactly which rule is stopping it.
 echo.
 
@@ -5268,8 +5187,8 @@ echo ===========================================================
 echo            O P T I M I Z E   P R O J E C T
 echo ===========================================================
 echo.
-echo  Is your project folder feeling slow or bulky? 
-echo  This "Garbage Collection" compresses your history 
+echo  Is your project folder feeling slow or bulky?
+echo  This "Garbage Collection" compresses your history
 echo  and cleans up temporary files to save space.
 echo.
 
@@ -5288,7 +5207,7 @@ echo ===========================================================
 echo             H E A L T H   C H E C K   (FSCK)
 echo ===========================================================
 echo.
-echo  This verifies that your project data isn't corrupted. 
+echo  This verifies that your project data isn't corrupted.
 echo  It checks every link in your history for integrity.
 echo.
 
@@ -5308,7 +5227,7 @@ echo ===========================================================
 echo             S T O R A G E   R E P O R T
 echo ===========================================================
 echo.
-echo  This shows exactly how much disk space your 
+echo  This shows exactly how much disk space your
 echo  Git history is using.
 echo.
 
@@ -5357,7 +5276,7 @@ echo ===========================================================
 echo            V I E W   I G N O R E   R U L E S
 echo ===========================================================
 echo.
-echo  These are the files and folders Git is currently 
+echo  These are the files and folders Git is currently
 echo  programmed to ignore.
 echo.
 
@@ -5382,7 +5301,7 @@ echo ===========================================================
 echo             Y O U R   S H O R T C U T S
 echo ===========================================================
 echo.
-echo  These are the custom 'Aliases' (shortcuts) you have 
+echo  These are the custom 'Aliases' (shortcuts) you have
 echo  configured in your Git settings.
 echo.
 
@@ -5398,166 +5317,449 @@ pause
 goto CatAdvanced
 
 :ResolveConflicts
+set "PS_RESOLVE_SCRIPT=%TEMP%\git_resolve_ui.ps1"
+set "PS_RAW_TXT=%TEMP%\git_resolve_raw.txt"
+set "RC_AUTO_COUNT=0"
+set "RC_MANUAL_COUNT=0"
+
+findstr /B ":::PS_RES:::" "%~f0" > "!PS_RAW_TXT!"
+powershell -NoProfile -Command "(Get-Content -LiteralPath '!PS_RAW_TXT!') -replace '^:::PS_RES:::', '' | Set-Content -LiteralPath '!PS_RESOLVE_SCRIPT!'"
+
+echo.
+echo  Running smart conflict analysis...
+
+for /f "tokens=1,*" %%A in ('git status --porcelain 2^>nul') do (
+    if "%%A"=="UU" (
+        set "RAW_FILE=%%B"
+        set "SAFE_FILE=!RAW_FILE:"=!"
+        set "SAFE_FILE=!SAFE_FILE:/=\!"
+
+        copy /Y "!SAFE_FILE!" "!SAFE_FILE!.bak" >nul 2>nul
+        powershell -NoProfile -ExecutionPolicy Bypass -File "!PS_RESOLVE_SCRIPT!" "!SAFE_FILE!" -SilentAutoFix
+        set "RC_EXIT=!ERRORLEVEL!"
+        if "!RC_EXIT!"=="0" (
+            set /a RC_AUTO_COUNT+=1
+            echo    Auto-resolved: !SAFE_FILE!
+            call git add --all "!SAFE_FILE!"
+            del /q "!SAFE_FILE!.bak" 2>nul
+        ) else (
+            move /Y "!SAFE_FILE!.bak" "!SAFE_FILE!" >nul 2>nul
+        )
+    )
+)
+
+if !RC_AUTO_COUNT! GTR 0 (
+    echo.
+    echo  Smart resolver handled your files automatically. !RC_AUTO_COUNT! in total.
+    echo.
+)
+
+:ConflictFileLoop
 cls
 echo.
 echo ===========================================================
-echo          F I X I N G   C O D E   C O N F L I C T S
+echo        F I X I N G   C O D E   C O N F L I C T S
 echo ===========================================================
 echo.
-echo  Git found overlapping changes. You need to decide which 
-echo  version to keep for each file listed below.
+echo  Git found overlapping changes. Select a file to resolve:
 echo.
+echo -----------------------------------------------------------
 
-:ConflictFileLoop
-echo -----------------------------------------------------------
-echo  Files waiting for a decision:
-echo -----------------------------------------------------------
 set "CONF_COUNT=0"
 for /f "tokens=1,*" %%A in ('git status --porcelain 2^>nul') do (
-    if "%%A"=="UU" (
-        set /a CONF_COUNT+=1
-        echo  [!CONF_COUNT!] %%B
-        set "FILE_!CONF_COUNT!=%%B"
-    )
-    if "%%A"=="AA" (
-        set /a CONF_COUNT+=1
-        echo  [!CONF_COUNT!] %%B - Both of you added this file
-        set "FILE_!CONF_COUNT!=%%B"
-    )
-    if "%%A"=="DU" (
-        set /a CONF_COUNT+=1
-        echo  [!CONF_COUNT!] %%B - You deleted it, they changed it
-        set "FILE_!CONF_COUNT!=%%B"
-    )
-    if "%%A"=="UD" (
-        set /a CONF_COUNT+=1
-        echo  [!CONF_COUNT!] %%B - They deleted it, you changed it
-        set "FILE_!CONF_COUNT!=%%B"
-    )
+    set "RAW_FILE=%%B"
+    set "SAFE_FILE=!RAW_FILE:"=!"
+    set "SAFE_FILE=!SAFE_FILE:/=\!"
+
+    if "%%A"=="UU" ( set /a CONF_COUNT+=1 & echo  [!CONF_COUNT!] !SAFE_FILE! & set "FILE_!CONF_COUNT!=!SAFE_FILE!" )
+    if "%%A"=="AA" ( set /a CONF_COUNT+=1 & echo  [!CONF_COUNT!] !SAFE_FILE! - Both added & set "FILE_!CONF_COUNT!=!SAFE_FILE!" )
+    if "%%A"=="DU" ( set /a CONF_COUNT+=1 & echo  [!CONF_COUNT!] !SAFE_FILE! - Deleted vs Modified & set "FILE_!CONF_COUNT!=!SAFE_FILE!" )
+    if "%%A"=="UD" ( set /a CONF_COUNT+=1 & echo  [!CONF_COUNT!] !SAFE_FILE! - Deleted vs Modified & set "FILE_!CONF_COUNT!=!SAFE_FILE!" )
 )
 
 echo.
 if "!CONF_COUNT!"=="0" (
-    echo  All conflicts are fixed!
-    echo  Finalizing the merge...
-    call git add -A
-    if not "!RESOLVE_NO_COMMIT!"=="1" call git commit --no-edit
-    echo.
-    echo  Success. Everything is back in sync.
+    echo  All conflicts are fixed.
+    for /L %%i in (1,1,!CONF_COUNT!) do if exist "!FILE_%%i!.bak" del /q "!FILE_%%i!.bak" 2>nul
+    if exist "!PS_RESOLVE_SCRIPT!" del "!PS_RESOLVE_SCRIPT!"
+    if exist "!PS_RAW_TXT!" del "!PS_RAW_TXT!"
     pause
-    goto :eof
+    exit /b 0
 )
 
 echo  Options:
-echo  - Enter the [Number] of the file to fix it
-echo  - Type ABORT to cancel and go back to normal
+echo  - Enter the Number of the file to fix it
+echo  - Type A to Auto-Keep the TOP BLOCK for ALL remaining files
+echo  - Type B to Auto-Keep the BOTTOM BLOCK for ALL remaining files
+echo  - Type ABORT to cancel the whole merge and clean up backups
 echo.
 
 set "FILE_NUM="
 set /p "FILE_NUM= Select a number or action: "
 
 if /I "!FILE_NUM!"=="ABORT" (
-    echo  Cancelling merge...
-    call git merge --abort
+    echo  Restoring backups and undoing script changes...
+    
+    for /L %%i in (1,1,!CONF_COUNT!) do (
+        if exist "!FILE_%%i!.bak" (
+            move /Y "!FILE_%%i!.bak" "!FILE_%%i!"
+        )
+    )
+    
+    call git reset
+    
+    echo  Detecting active Git operation to cancel...
+    for /f "tokens=*" %%D in ('git rev-parse --git-dir') do set "GIT_DIR=%%D"
+    
+    if exist "!GIT_DIR!\MERGE_HEAD" (
+        echo  Aborting merge...
+        call git merge --abort
+    ) else if exist "!GIT_DIR!\rebase-merge" (
+        echo  Aborting rebase...
+        call git rebase --abort
+    ) else if exist "!GIT_DIR!\rebase-apply" (
+        echo  Aborting rebase...
+        call git rebase --abort
+    ) else if exist "!GIT_DIR!\CHERRY_PICK_HEAD" (
+        echo  Aborting cherry-pick...
+        call git cherry-pick --abort
+    ) else if exist "!GIT_DIR!\REVERT_HEAD" (
+        echo  Aborting revert...
+        call git revert --abort
+    ) else (
+        echo  Warning: Could not automatically detect a merge, rebase, or cherry-pick to abort.
+        echo  You may need to clean up your working directory manually.
+    )
+    
+    if exist "!PS_RESOLVE_SCRIPT!" del "!PS_RESOLVE_SCRIPT!"
+    if exist "!PS_RAW_TXT!" del "!PS_RAW_TXT!"
+    
     pause
-    goto :eof
+    exit /b 1
 )
 
-:: Map the number back to the filename
+if /I "!FILE_NUM!"=="A" (
+    for /L %%i in (1,1,!CONF_COUNT!) do (
+        copy /Y "!FILE_%%i!" "!FILE_%%i!.bak" >nul 2>nul
+        powershell -NoProfile -ExecutionPolicy Bypass -File "!PS_RESOLVE_SCRIPT!" "!FILE_%%i!" -ForceTop
+        if "!ERRORLEVEL!"=="0" (
+            call git add --all "!FILE_%%i!"
+            del /q "!FILE_%%i!.bak" 2>nul
+        )
+    )
+    goto ConflictFileLoop
+)
+if /I "!FILE_NUM!"=="B" (
+    for /L %%i in (1,1,!CONF_COUNT!) do (
+        copy /Y "!FILE_%%i!" "!FILE_%%i!.bak" >nul 2>nul
+        powershell -NoProfile -ExecutionPolicy Bypass -File "!PS_RESOLVE_SCRIPT!" "!FILE_%%i!" -ForceBottom
+        if "!ERRORLEVEL!"=="0" (
+            call git add --all "!FILE_%%i!"
+            del /q "!FILE_%%i!.bak" 2>nul
+        )
+    )
+    goto ConflictFileLoop
+)
+
 if defined FILE_!FILE_NUM! (
-    set "CONF_FILE=!FILE_!FILE_NUM!!"
+    for /f "delims=" %%A in ("!FILE_NUM!") do set "CONF_FILE=!FILE_%%A!"
 ) else (
-    echo Invalid selection.
+    echo Invalid selection. Please try again.
+    timeout /t 2 >nul
+    goto ConflictFileLoop
+)
+
+copy /Y "!CONF_FILE!" "!CONF_FILE!.bak" >nul 2>nul
+powershell -NoProfile -ExecutionPolicy Bypass -File "!PS_RESOLVE_SCRIPT!" "!CONF_FILE!"
+set "PS_RESULT=!ERRORLEVEL!"
+
+if "!PS_RESULT!"=="0" (
+    cls
+    echo.
+    echo ===========================================================
+    echo  REVIEW RESOLVED: !CONF_FILE!
+    echo ===========================================================
+    echo.
+    call git diff --color=always "!CONF_FILE!"
+    echo.
+    echo -----------------------------------------------------------
+    echo  [S] Looks good, Stage it
+    echo  [R] Revert to backup and try again
+    echo.
+    set "REVIEW_EDIT="
+    set /p "REVIEW_EDIT= Select action: "
+
+    if /I "!REVIEW_EDIT!"=="S" (
+        call git add --all "!CONF_FILE!"
+        del /q "!CONF_FILE!.bak" 2>nul
+    ) else (
+        move /Y "!CONF_FILE!.bak" "!CONF_FILE!" >nul 2>nul
+        echo Reverted to original markers.
+        timeout /t 2 >nul
+    )
+    goto ConflictFileLoop
+)
+
+if "!PS_RESULT!"=="2" (
+    cls
+    echo.
+    echo ===========================================================
+    echo  OPENING IN EDITOR: !CONF_FILE!
+    echo ===========================================================
+    echo.
+    echo  The file has been left with conflict markers for manual editing.
+    echo  Opening file now...
+    start "" "!CONF_FILE!"
+    echo.
+    echo  After editing, save the file and return here.
+    echo  [S] Done editing, Stage it
+    echo  [R] Revert to backup
+    echo.
+    set "EDITOR_CHOICE="
+    set /p "EDITOR_CHOICE= Select action: "
+
+    if /I "!EDITOR_CHOICE!"=="S" (
+        call git add --all "!CONF_FILE!"
+        del /q "!CONF_FILE!.bak" 2>nul
+    ) else (
+        move /Y "!CONF_FILE!.bak" "!CONF_FILE!" >nul 2>nul
+        echo Reverted to original.
+        timeout /t 2 >nul
+    )
     goto ConflictFileLoop
 )
 
 cls
 echo.
-echo  Working on: !CONF_FILE!
-echo -----------------------------------------------------------
-echo  What should we do with this file?
+echo ===========================================================
+echo  STRUCTURAL CONFLICT: !CONF_FILE!
+echo ===========================================================
 echo.
-echo  [1]  Keep MY version - Discard their changes
-echo  [2]  Keep THEIR version - Discard my changes
-echo  [3]  Look inside the file to decide
+echo  This file lacks inline code markers.
+echo  One side deleted or renamed the file, while the other side modified it.
 echo.
-set "CONF_ACTION="
-set /p "CONF_ACTION= Select: "
+echo  What do you want to do?
+echo  [1] KEEP the modified file
+echo  [2] DELETE the file completely
+echo.
+set "CONF_EDIT="
+set /p "CONF_EDIT= Select: "
 
-if "!CONF_ACTION!"=="1" (
-    call git checkout --ours "!CONF_FILE!"
-    call git add "!CONF_FILE!"
-    echo Kept YOUR version.
-)
-if "!CONF_ACTION!"=="2" (
-    call git checkout --theirs "!CONF_FILE!"
-    call git add "!CONF_FILE!"
-    echo Kept THEIR version.
-)
-if "!CONF_ACTION!"=="3" (
-    echo.
-    echo ===========================================================
-    echo  COMPARING VERSIONS FOR: !CONF_FILE!
-    echo ===========================================================
-    echo.
-    echo --- YOUR VERSION (Local) ---
-    echo.
-    call git show :2:"!CONF_FILE!"
-    echo.
-    echo -----------------------------------------------------------
-    echo --- THEIR VERSION (Cloud) ---
-    echo.
-    call git show :3:"!CONF_FILE!"
-    echo.
-    echo -----------------------------------------------------------
-    echo.
-    echo  What do you want to do?
-    echo  [1] Keep YOUR version
-    echo  [2] Keep THEIR version
-    echo  [3] I will edit the file manually to mix them
-    echo.
-    set "CONF_EDIT="
-    set /p "CONF_EDIT= Select: "
-    
-    if "!CONF_EDIT!"=="1" (
-        call git checkout --ours "!CONF_FILE!"
-        call git add "!CONF_FILE!"
-        echo Kept YOUR version.
-    )
-    if "!CONF_EDIT!"=="2" (
-        call git checkout --theirs "!CONF_FILE!"
-        call git add "!CONF_FILE!"
-        echo Kept THEIR version.
-    )
-    if "!CONF_EDIT!"=="3" (
-        echo.
-        echo  Please open the file in your code editor.
-        echo  You will see the markers there - use them as guides
-        echo  to combine the code, then delete the marker lines.
-        echo.
-        echo  Once you save the file, come back here.
-        pause
-        call git add "!CONF_FILE!"
-        echo File marked as fixed.
-    )
-)
+if "!CONF_EDIT!"=="1" ( call git add --all "!CONF_FILE!" )
+if "!CONF_EDIT!"=="2" ( call git rm "!CONF_FILE!" )
 
 goto ConflictFileLoop
+
+:::PS_RES:::param($FilePath, [switch]$SilentAutoFix, [switch]$ForceTop, [switch]$ForceBottom, [switch]$DryRun)
+:::PS_RES:::$lines = Get-Content -Path $FilePath -ErrorAction SilentlyContinue
+:::PS_RES:::if (-not $lines) { exit 1 }
+:::PS_RES:::
+:::PS_RES:::function Get-FileExtension([string]$Path) { return [System.IO.Path]::GetExtension($Path).ToLower() }
+:::PS_RES:::
+:::PS_RES:::function Test-WhitespaceOnly([string[]]$Block) {
+:::PS_RES:::    foreach ($l in $Block) { if ($l.Trim().Length -gt 0) { return $false } }
+:::PS_RES:::    return $true
+:::PS_RES:::}
+:::PS_RES:::
+:::PS_RES:::function Test-IdenticalBlocks([string[]]$A, [string[]]$B) {
+:::PS_RES:::    if ($A.Count -ne $B.Count) { return $false }
+:::PS_RES:::    for ($i = 0; $i -lt $A.Count; $i++) { if ($A[$i] -ne $B[$i]) { return $false } }
+:::PS_RES:::    return $true
+:::PS_RES:::}
+:::PS_RES:::
+:::PS_RES:::function Test-WhitespaceOnlyDiff([string[]]$A, [string[]]$B) {
+:::PS_RES:::    if ($A.Count -ne $B.Count) { return $false }
+:::PS_RES:::    for ($i = 0; $i -lt $A.Count; $i++) { if ($A[$i].Trim() -ne $B[$i].Trim()) { return $false } }
+:::PS_RES:::    return $true
+:::PS_RES:::}
+:::PS_RES:::
+:::PS_RES:::function Merge-DeduplicatedConcat([string[]]$A, [string[]]$B) {
+:::PS_RES:::    $setA = @{}; foreach ($l in $A) { $setA[$l] = $true }
+:::PS_RES:::    $result = @() + $A
+:::PS_RES:::    foreach ($l in $B) { if (-not $setA.ContainsKey($l)) { $result += $l } }
+:::PS_RES:::    return $result
+:::PS_RES:::}
+:::PS_RES:::
+:::PS_RES:::function Test-JsonKeyConflict([string[]]$A, [string[]]$B) {
+:::PS_RES:::    $ext = Get-FileExtension $FilePath
+:::PS_RES:::    if ($ext -notin @(".json", ".yaml", ".yml", ".toml")) { return $false }
+:::PS_RES:::    foreach ($l in $A) { if ($l -match '^\s*["{]?\s*\w+.*[:,]') { return $true } }
+:::PS_RES:::    return $false
+:::PS_RES:::}
+:::PS_RES:::
+:::PS_RES:::function Merge-JsonKeys([string[]]$A, [string[]]$B) {
+:::PS_RES:::    $keysA = @{}; foreach ($l in $A) {
+:::PS_RES:::        if ($l -match '^\s*"?(\w+)"?\s*[:=]') { $keysA[$Matches[1]] = $l } else { $keysA["_line_$($keysA.Count)"] = $l }
+:::PS_RES:::    }
+:::PS_RES:::    foreach ($l in $B) {
+:::PS_RES:::        if ($l -match '^\s*"?(\w+)"?\s*[:=]') {
+:::PS_RES:::            if (-not $keysA.ContainsKey($Matches[1])) { $keysA[$Matches[1]] = $l }
+:::PS_RES:::        } else { $keysA["_lineB_$($keysA.Count)"] = $l }
+:::PS_RES:::    }
+:::PS_RES:::    return @($keysA.Values)
+:::PS_RES:::}
+:::PS_RES:::
+:::PS_RES:::function Get-GitInfo([string]$Ref) {
+:::PS_RES:::    $info = @{ Time = 0; Author = "" }
+:::PS_RES:::    if (-not $Ref -or $Ref.Length -eq 0) { return $info }
+:::PS_RES:::    try {
+:::PS_RES:::        $logData = git log -1 --format="%at|%an" $Ref 2>$null
+:::PS_RES:::        if ($logData -match "\|") {
+:::PS_RES:::            $parts = $logData.Split("|")
+:::PS_RES:::            $info.Time = [int]$parts[0]
+:::PS_RES:::            $info.Author = $parts[1]
+:::PS_RES:::        }
+:::PS_RES:::    } catch {}
+:::PS_RES:::    return $info
+:::PS_RES:::}
+:::PS_RES:::
+:::PS_RES:::$resolvedLines = @()
+:::PS_RES:::$inOurs = $false; $inTheirs = $false; $oursBlock = @(); $theirsBlock = @()
+:::PS_RES:::$conflictCount = 0; $hasConflicts = $false; $needsManual = $false
+:::PS_RES:::$markerOursRaw = ""; $markerTheirsRaw = ""
+:::PS_RES:::$autoResolved = 0; $manualResolved = 0; $strategies = @()
+:::PS_RES:::
+:::PS_RES:::foreach ($line in $lines) {
+:::PS_RES:::    if ($line.StartsWith("<<<<<<<")) {
+:::PS_RES:::        $inOurs = $true; $hasConflicts = $true
+:::PS_RES:::        $oursBlock = @(); $theirsBlock = @(); $conflictCount++
+:::PS_RES:::        $markerOursRaw = $line
+:::PS_RES:::        continue
+:::PS_RES:::    }
+:::PS_RES:::    if ($line.StartsWith("=======")) {
+:::PS_RES:::        $inOurs = $false; $inTheirs = $true
+:::PS_RES:::        continue
+:::PS_RES:::    }
+:::PS_RES:::    if ($line.StartsWith(">>>>>>>")) {
+:::PS_RES:::        $inTheirs = $false
+:::PS_RES:::        $markerTheirsRaw = $line
+:::PS_RES:::
+:::PS_RES:::        if ($ForceTop) { $resolvedLines += $oursBlock; $autoResolved++; $strategies += "force-top"; continue }
+:::PS_RES:::        if ($ForceBottom) { $resolvedLines += $theirsBlock; $autoResolved++; $strategies += "force-bottom"; continue }
+:::PS_RES:::
+:::PS_RES:::        if (Test-IdenticalBlocks $oursBlock $theirsBlock) {
+:::PS_RES:::            $resolvedLines += $oursBlock; $autoResolved++; $strategies += "identical-blocks"
+:::PS_RES:::            continue
+:::PS_RES:::        }
+:::PS_RES:::
+:::PS_RES:::        $oursEmpty = Test-WhitespaceOnly $oursBlock
+:::PS_RES:::        $theirsEmpty = Test-WhitespaceOnly $theirsBlock
+:::PS_RES:::        if ($oursEmpty -and $theirsEmpty) {
+:::PS_RES:::            $autoResolved++; $strategies += "both-empty"
+:::PS_RES:::            continue
+:::PS_RES:::        }
+:::PS_RES:::        if ($oursEmpty -and -not $theirsEmpty) {
+:::PS_RES:::            $resolvedLines += $theirsBlock; $autoResolved++; $strategies += "ours-empty-keep-theirs"
+:::PS_RES:::            continue
+:::PS_RES:::        }
+:::PS_RES:::        if (-not $oursEmpty -and $theirsEmpty) {
+:::PS_RES:::            $resolvedLines += $oursBlock; $autoResolved++; $strategies += "theirs-empty-keep-ours"
+:::PS_RES:::            continue
+:::PS_RES:::        }
+:::PS_RES:::
+:::PS_RES:::        if (Test-WhitespaceOnlyDiff $oursBlock $theirsBlock) {
+:::PS_RES:::            $resolvedLines += $oursBlock; $autoResolved++; $strategies += "whitespace-only-diff"
+:::PS_RES:::            continue
+:::PS_RES:::        }
+:::PS_RES:::
+:::PS_RES:::        $refA = ($markerOursRaw -split "\s+")[1]
+:::PS_RES:::        $refB = ($markerTheirsRaw -split "\s+")[1]
+:::PS_RES:::        if (-not $refA) { $refA = "HEAD" }
+:::PS_RES:::        if (-not $refB) { $refB = "HEAD" }
+:::PS_RES:::
+:::PS_RES:::        $infoA = Get-GitInfo $refA
+:::PS_RES:::        $infoB = Get-GitInfo $refB
+:::PS_RES:::        $isSameUser = ($infoA.Author -ne "" -and $infoA.Author -eq $infoB.Author)
+:::PS_RES:::
+:::PS_RES:::        if ($isSameUser -and $infoA.Time -ne 0 -and $infoB.Time -ne 0) {
+:::PS_RES:::            $newerBlock = if ($infoA.Time -ge $infoB.Time) { $oursBlock } else { $theirsBlock }
+:::PS_RES:::            $resolvedLines += $newerBlock; $autoResolved++; $strategies += "same-author-newer"
+:::PS_RES:::            continue
+:::PS_RES:::        }
+:::PS_RES:::
+:::PS_RES:::        if (Test-JsonKeyConflict $oursBlock $theirsBlock) {
+:::PS_RES:::            $merged = Merge-JsonKeys $oursBlock $theirsBlock
+:::PS_RES:::            $resolvedLines += $merged; $autoResolved++; $strategies += "json-key-merge"
+:::PS_RES:::            continue
+:::PS_RES:::        }
+:::PS_RES:::
+:::PS_RES:::        if ($SilentAutoFix) {
+:::PS_RES:::            $merged = Merge-DeduplicatedConcat $oursBlock $theirsBlock
+:::PS_RES:::            $resolvedLines += $merged; $autoResolved++; $strategies += "keep-both-dedup"
+:::PS_RES:::            continue
+:::PS_RES:::        }
+:::PS_RES:::
+:::PS_RES:::        Clear-Host
+:::PS_RES:::        Write-Host "===========================================================" -ForegroundColor Cyan
+:::PS_RES:::        Write-Host " CONFLICT $conflictCount IN: $FilePath" -ForegroundColor White
+:::PS_RES:::        Write-Host "===========================================================" -ForegroundColor Cyan
+:::PS_RES:::        Write-Host ""
+:::PS_RES:::        Write-Host "--- [1] TOP BLOCK ($refA) ---" -ForegroundColor Green
+:::PS_RES:::        $oursBlock | ForEach-Object { Write-Host "  $_" -ForegroundColor Gray }
+:::PS_RES:::        Write-Host ""
+:::PS_RES:::        Write-Host "--- [2] BOTTOM BLOCK ($refB) ---" -ForegroundColor Yellow
+:::PS_RES:::        $theirsBlock | ForEach-Object { Write-Host "  $_" -ForegroundColor Gray }
+:::PS_RES:::        Write-Host ""
+:::PS_RES:::        Write-Host "===========================================================" -ForegroundColor Cyan
+:::PS_RES:::        Write-Host "[1] Keep TOP block only" -ForegroundColor Green
+:::PS_RES:::        Write-Host "[2] Keep BOTTOM block only" -ForegroundColor Yellow
+:::PS_RES:::        Write-Host "[3] Keep BOTH: Top then Bottom" -ForegroundColor Magenta
+:::PS_RES:::        Write-Host "[4] Keep BOTH: Bottom then Top" -ForegroundColor Magenta
+:::PS_RES:::        Write-Host "[5] Open file in default editor" -ForegroundColor White
+:::PS_RES:::        Write-Host "===========================================================" -ForegroundColor Cyan
+:::PS_RES:::        $choice = ""
+:::PS_RES:::        while ($choice -notmatch "^[12345]$") { $choice = Read-Host "Select an option 1-5" }
+:::PS_RES:::        if ($choice -eq "1") { $resolvedLines += $oursBlock; $manualResolved++; $strategies += "manual-top" }
+:::PS_RES:::        if ($choice -eq "2") { $resolvedLines += $theirsBlock; $manualResolved++; $strategies += "manual-bottom" }
+:::PS_RES:::        if ($choice -eq "3") { $resolvedLines += $oursBlock; $resolvedLines += $theirsBlock; $manualResolved++; $strategies += "manual-both-tb" }
+:::PS_RES:::        if ($choice -eq "4") { $resolvedLines += $theirsBlock; $resolvedLines += $oursBlock; $manualResolved++; $strategies += "manual-both-bt" }
+:::PS_RES:::        if ($choice -eq "5") {
+:::PS_RES:::            $resolvedLines += $markerOursRaw
+:::PS_RES:::            $resolvedLines += $oursBlock
+:::PS_RES:::            $resolvedLines += "======="
+:::PS_RES:::            $resolvedLines += $theirsBlock
+:::PS_RES:::            $resolvedLines += $markerTheirsRaw
+:::PS_RES:::            $needsManual = $true; $manualResolved++; $strategies += "open-editor"
+:::PS_RES:::        }
+:::PS_RES:::        continue
+:::PS_RES:::    }
+:::PS_RES:::    if ($inOurs) { $oursBlock += $line } elseif ($inTheirs) { $theirsBlock += $line } else { $resolvedLines += $line }
+:::PS_RES:::}
+:::PS_RES:::
+:::PS_RES:::if ($hasConflicts) {
+:::PS_RES:::    if ($DryRun) {
+:::PS_RES:::        Write-Host "--- DRY RUN REPORT for: $FilePath ---"
+:::PS_RES:::        Write-Host "Total conflicts: $conflictCount"
+:::PS_RES:::        Write-Host "Auto-resolved: $autoResolved | Manual: $manualResolved"
+:::PS_RES:::        for ($i = 0; $i -lt $strategies.Count; $i++) {
+:::PS_RES:::            Write-Host "  Conflict $($i+1): $($strategies[$i])"
+:::PS_RES:::        }
+:::PS_RES:::        exit 0
+:::PS_RES:::    }
+:::PS_RES:::    $utf8NoBom = New-Object System.Text.UTF8Encoding $False
+:::PS_RES:::    [System.IO.File]::WriteAllLines($FilePath, $resolvedLines, $utf8NoBom)
+:::PS_RES:::    Write-Host "Resolved $autoResolved of $conflictCount conflicts automatically." -ForegroundColor Green
+:::PS_RES:::    if ($manualResolved -gt 0) { Write-Host "$manualResolved conflict(s) resolved manually." -ForegroundColor Yellow }
+:::PS_RES:::    for ($i = 0; $i -lt $strategies.Count; $i++) {
+:::PS_RES:::        Write-Host "  #$($i+1): $($strategies[$i])" -ForegroundColor DarkGray
+:::PS_RES:::    }
+:::PS_RES:::    if ($needsManual) { exit 2 } else { exit 0 }
+:::PS_RES:::} else { exit 1 }
 
 :PromptForcePush
 echo.
 set "SYNC_REMOTE="
 set /p "SYNC_REMOTE= Sync changes to the cloud? Y or N: "
-if /I not "!SYNC_REMOTE!"=="Y" goto :eof
+if /I not "!SYNC_REMOTE!"=="Y" exit /b 1
 
 for /f "delims=" %%I in ('git rev-parse --abbrev-ref HEAD 2^>nul') do set "CURRENT_BRANCH=%%I"
 
 echo Safe-updating the cloud...
-call git push origin "!CURRENT_BRANCH!" --force-with-lease
+call :GitNetworkOp "git push origin !CURRENT_BRANCH! --force-with-lease"
 
 if not errorlevel 1 (
     echo Cloud is now in sync!
-    goto :eof
+    exit /b 0
 )
 
 echo.
@@ -5568,20 +5770,20 @@ set "FORCE_RETRY="
 set /p "FORCE_RETRY= Overwrite cloud changes anyway? Y or N: "
 
 if /I "!FORCE_RETRY!"=="Y" (
-    call git push origin "!CURRENT_BRANCH!" --force
+    call :GitNetworkOp "git push origin !CURRENT_BRANCH! --force"
     echo Cloud has been forcefully updated.
 ) else (
     echo Push cancelled.
 )
-goto :eof
+exit /b 1
 
 :PromptForcePushHard
 echo.
 echo ###########################################################
 echo  IMPORTANT: CLOUD OVERWRITE REQUESTED
 echo ###########################################################
-echo  If you are trying to remove sensitive data or fix a 
-echo  major mistake, a force-push is required to update 
+echo  If you are trying to remove sensitive data or fix a
+echo  major mistake, a force-push is required to update
 echo  the cloud version of this project.
 echo.
 echo  WARNING: This will replace the history on the server
@@ -5593,7 +5795,7 @@ set /p "SYNC_REMOTE= Proceed with the cloud overwrite? Y or N: "
 if /I not "!SYNC_REMOTE!"=="Y" (
     echo.
     echo Overwrite cancelled.
-    goto :eof
+    exit /b 1
 )
 
 for /f "delims=" %%I in ('git rev-parse --abbrev-ref HEAD 2^>nul') do set "CURRENT_BRANCH=%%I"
@@ -5602,7 +5804,7 @@ echo.
 echo FORCE-updating the cloud...
 call git push origin "!CURRENT_BRANCH!" --force
 echo Cloud has been updated and history has been replaced.
-goto :eof
+exit /b 0
 
 :DropSpecificCommit
 set "DROP_COMMIT=%~1"
@@ -5613,7 +5815,7 @@ if "!HEAD_SHA!"=="!DROP_SHA!" (
     echo This is the latest save point. Performing a hard reset...
     call git reset --hard HEAD~1
     echo Done. The save point and all its changes have been erased.
-    goto :eof
+    exit /b 0
 )
 
 echo Removing a save point from the middle of history...
@@ -5625,7 +5827,7 @@ call git rebase -X theirs --onto !DROP_SHA!~1 !DROP_SHA!
 
 if not errorlevel 1 (
     echo Done. The save point has been removed from history.
-    goto :eof
+    exit /b 0
 )
 
 echo.
@@ -5637,13 +5839,13 @@ call :HandleRebaseConflicts
 
 echo.
 echo Done. The save point has been removed from history.
-goto :eof
+exit /b 0
 
 :HandleRebaseConflicts
 set "REBASE_ACTIVE=0"
 for /f "delims=" %%X in ('git status 2^>nul ^| findstr /C:"rebase in progress"') do set "REBASE_ACTIVE=1"
 
-if "!REBASE_ACTIVE!"=="0" goto :eof
+if "!REBASE_ACTIVE!"=="0" exit /b 0
 
 echo.
 echo Attempting to automatically fix remaining overlaps...
@@ -5656,7 +5858,7 @@ for /f "delims=" %%X in ('git status 2^>nul ^| findstr /C:"rebase in progress"')
 
 if "!REBASE_ACTIVE!"=="0" (
     echo Automatic fix succeeded!
-    goto :eof
+    exit /b 0
 )
 
 echo.
@@ -5669,6 +5871,130 @@ echo Continuing with the history update...
 call git rebase --continue 2>nul
 
 goto HandleRebaseConflicts
+
+:AutoStash
+for /f "delims=" %%S in ('git stash list 2^>nul ^| find /c /v ""') do set "STASH_BEFORE=%%S"
+call git stash push -m "git-manager-autostash" --include-untracked >nul 2>nul
+for /f "delims=" %%S in ('git stash list 2^>nul ^| find /c /v ""') do set "STASH_AFTER=%%S"
+if !STASH_AFTER! GTR !STASH_BEFORE! (
+    set "AUTOSTASH_ACTIVE=1"
+    echo  Auto-stashed uncommitted changes.
+) else (
+    set "AUTOSTASH_ACTIVE=0"
+)
+exit /b 0
+
+:AutoStashPop
+if "!AUTOSTASH_ACTIVE!"=="1" (
+    call git stash pop >nul 2>nul
+    if not errorlevel 1 (
+        echo  Restored auto-stashed changes.
+    ) else (
+        echo  Warning: Could not auto-restore stashed changes.
+        echo  Your changes are saved in the stash. Use 'git stash pop' manually.
+    )
+    set "AUTOSTASH_ACTIVE=0"
+)
+exit /b 0
+
+:PreFlightDestructive
+for /f "delims=" %%I in ('git rev-parse --abbrev-ref HEAD 2^>nul') do set "PF_BRANCH=%%I"
+for /f "delims=" %%C in ('git log -1 --format^=%%H 2^>nul') do set "PF_HEAD=%%C"
+set "PF_DIRTY=0"
+for /f "tokens=1" %%A in ('git status --porcelain 2^>nul') do set "PF_DIRTY=1"
+if "!PF_DIRTY!"=="1" (
+    echo.
+    echo  WARNING: You have uncommitted changes.
+    echo  Current branch: !PF_BRANCH! @ !PF_HEAD:~0,8!
+    echo.
+    set "PF_CONTINUE="
+    set /p "PF_CONTINUE= Continue anyway? Y or N: "
+    if /I not "!PF_CONTINUE!"=="Y" exit /b 1
+)
+exit /b 0
+
+:GitNetworkOp
+set "GNO_CMD=%~1"
+set "GNO_MAX_RETRIES=3"
+set "GNO_ATTEMPT=0"
+:GitNetworkRetry
+set /a GNO_ATTEMPT+=1
+echo  [Attempt !GNO_ATTEMPT! of !GNO_MAX_RETRIES!] !GNO_CMD!
+call !GNO_CMD!
+if not errorlevel 1 exit /b 0
+if !GNO_ATTEMPT! GEQ !GNO_MAX_RETRIES! (
+    echo.
+    echo  Network operation failed after !GNO_MAX_RETRIES! attempts.
+    echo  Check your internet connection and try again.
+    exit /b 1
+)
+echo  Retrying in 3 seconds...
+timeout /t 3 /nobreak >nul
+goto GitNetworkRetry
+
+:SuggestCommitMsg
+set "SCM_RESULT="
+for /f "delims=" %%F in ('git diff --cached --name-only 2^>nul') do (
+    if "!SCM_RESULT!"=="" ( set "SCM_RESULT=%%~nxF" ) else ( set "SCM_RESULT=!SCM_RESULT!, %%~nxF" )
+)
+if "!SCM_RESULT!"=="" (
+    for /f "delims=" %%F in ('git diff --name-only 2^>nul') do (
+        if "!SCM_RESULT!"=="" ( set "SCM_RESULT=%%~nxF" ) else ( set "SCM_RESULT=!SCM_RESULT!, %%~nxF" )
+    )
+)
+for /f "delims=" %%N in ('git diff --cached --numstat 2^>nul ^| find /c /v ""') do set "SCM_FILE_COUNT=%%N"
+if "!SCM_FILE_COUNT!"=="" set "SCM_FILE_COUNT=0"
+if !SCM_FILE_COUNT! GTR 5 (
+    set "SCM_SUGGESTION=Update !SCM_FILE_COUNT! files"
+) else if "!SCM_RESULT!"=="" (
+    set "SCM_SUGGESTION=Update project"
+) else (
+    set "SCM_SUGGESTION=Update !SCM_RESULT!"
+)
+exit /b 0
+
+:PickBranch
+set "PB_RESULT="
+set "PB_COUNT=0"
+echo.
+echo  Available branches:
+echo -----------------------------------------------------------
+for /f "delims=" %%B in ('git branch --format^="%%(refname:short)" 2^>nul') do (
+    set /a PB_COUNT+=1
+    echo  [!PB_COUNT!] %%B
+    set "PB_!PB_COUNT!=%%B"
+)
+echo -----------------------------------------------------------
+echo.
+set "PB_INPUT="
+set /p "PB_INPUT= Select branch number or type name: "
+
+set "PB_MATCH="
+for /L %%i in (1,1,!PB_COUNT!) do (
+    if "!PB_INPUT!"=="%%i" (
+        for /f "delims=" %%V in ("!PB_%%i!") do set "PB_MATCH=%%V"
+    )
+)
+
+if defined PB_MATCH (
+    set "PB_RESULT=!PB_MATCH!"
+) else (
+    set "PB_FOUND=0"
+    for /f "delims=" %%B in ('git branch --format^="%%(refname:short)" 2^>nul') do (
+        echo %%B | findstr /I "!PB_INPUT!" >nul 2>nul && (
+            if "!PB_FOUND!"=="0" (
+                set "PB_RESULT=%%B"
+                set "PB_FOUND=1"
+            )
+        )
+    )
+    if "!PB_FOUND!"=="0" set "PB_RESULT=!PB_INPUT!"
+)
+exit /b 0
+
+:ShowStep
+echo  [Step %~1 of %~2] %~3
+exit /b 0
 
 :ExitScript
 cls
