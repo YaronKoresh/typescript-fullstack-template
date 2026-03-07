@@ -76,7 +76,7 @@ if "!CAT!"=="9" goto CatTags
 if "!CAT!"=="10" goto CatSubmodules
 if "!CAT!"=="11" goto CatAdvanced
 if "!CAT!"=="12" (
-    call ResolveConflicts
+    call :ResolveConflicts
     goto MainMenu
 )
 if "!CAT!"=="0" goto ExitScript
@@ -5348,12 +5348,6 @@ for /f "tokens=1,*" %%A in ('git status --porcelain 2^>nul') do (
     )
 )
 
-if !RC_AUTO_COUNT! GTR 0 (
-    echo.
-    echo  Smart resolver handled your files automatically. !RC_AUTO_COUNT! in total.
-    echo.
-)
-
 :ConflictFileLoop
 cls
 echo.
@@ -5551,7 +5545,10 @@ if "!CONF_EDIT!"=="2" ( call git rm "!CONF_FILE!" )
 goto ConflictFileLoop
 
 :::PS_RES:::param($FilePath, [switch]$SilentAutoFix, [switch]$ForceTop, [switch]$ForceBottom, [switch]$DryRun)
-:::PS_RES:::$lines = Get-Content -Path $FilePath -ErrorAction SilentlyContinue
+:::PS_RES:::
+:::PS_RES:::if (-not (Test-Path $FilePath)) { exit 1 }
+:::PS_RES:::$utf8NoBom = New-Object System.Text.UTF8Encoding $False
+:::PS_RES:::$lines = [System.IO.File]::ReadAllLines($FilePath, $utf8NoBom)
 :::PS_RES:::if (-not $lines) { exit 1 }
 :::PS_RES:::
 :::PS_RES:::function Get-FileExtension([string]$Path) { return [System.IO.Path]::GetExtension($Path).ToLower() }
@@ -5573,30 +5570,14 @@ goto ConflictFileLoop
 :::PS_RES:::    return $true
 :::PS_RES:::}
 :::PS_RES:::
-:::PS_RES:::function Merge-DeduplicatedConcat([string[]]$A, [string[]]$B) {
-:::PS_RES:::    $setA = @{}; foreach ($l in $A) { $setA[$l] = $true }
-:::PS_RES:::    $result = @() + $A
-:::PS_RES:::    foreach ($l in $B) { if (-not $setA.ContainsKey($l)) { $result += $l } }
-:::PS_RES:::    return $result
-:::PS_RES:::}
-:::PS_RES:::
-:::PS_RES:::function Test-JsonKeyConflict([string[]]$A, [string[]]$B) {
-:::PS_RES:::    $ext = Get-FileExtension $FilePath
-:::PS_RES:::    if ($ext -notin @(".json", ".yaml", ".yml", ".toml")) { return $false }
-:::PS_RES:::    foreach ($l in $A) { if ($l -match '^\s*["{]?\s*\w+.*[:,]') { return $true } }
-:::PS_RES:::    return $false
-:::PS_RES:::}
-:::PS_RES:::
-:::PS_RES:::function Merge-JsonKeys([string[]]$A, [string[]]$B) {
-:::PS_RES:::    $keysA = @{}; foreach ($l in $A) {
-:::PS_RES:::        if ($l -match '^\s*"?(\w+)"?\s*[:=]') { $keysA[$Matches[1]] = $l } else { $keysA["_line_$($keysA.Count)"] = $l }
+:::PS_RES:::function Merge-SafeConcat([string[]]$A, [string[]]$B, [string]$Ext) {
+:::PS_RES:::    if ($Ext -in @(".gitignore", ".env", ".txt", ".md")) {
+:::PS_RES:::        $setA = @{}; foreach ($l in $A) { $setA[$l] = $true }
+:::PS_RES:::        $result = @() + $A
+:::PS_RES:::        foreach ($l in $B) { if (-not $setA.ContainsKey($l)) { $result += $l } }
+:::PS_RES:::        return $result
 :::PS_RES:::    }
-:::PS_RES:::    foreach ($l in $B) {
-:::PS_RES:::        if ($l -match '^\s*"?(\w+)"?\s*[:=]') {
-:::PS_RES:::            if (-not $keysA.ContainsKey($Matches[1])) { $keysA[$Matches[1]] = $l }
-:::PS_RES:::        } else { $keysA["_lineB_$($keysA.Count)"] = $l }
-:::PS_RES:::    }
-:::PS_RES:::    return @($keysA.Values)
+:::PS_RES:::    return @() + $A + $B
 :::PS_RES:::}
 :::PS_RES:::
 :::PS_RES:::function Get-GitInfo([string]$Ref) {
@@ -5614,23 +5595,34 @@ goto ConflictFileLoop
 :::PS_RES:::}
 :::PS_RES:::
 :::PS_RES:::$resolvedLines = @()
-:::PS_RES:::$inOurs = $false; $inTheirs = $false; $oursBlock = @(); $theirsBlock = @()
+:::PS_RES:::$inOurs = $false; $inTheirs = $false; $inBase = $false
+:::PS_RES:::$oursBlock = @(); $theirsBlock = @(); $baseBlock = @()
 :::PS_RES:::$conflictCount = 0; $hasConflicts = $false; $needsManual = $false
 :::PS_RES:::$markerOursRaw = ""; $markerTheirsRaw = ""
 :::PS_RES:::$autoResolved = 0; $manualResolved = 0; $strategies = @()
+:::PS_RES:::$ext = Get-FileExtension $FilePath
 :::PS_RES:::
 :::PS_RES:::foreach ($line in $lines) {
 :::PS_RES:::    if ($line.StartsWith("<<<<<<<")) {
-:::PS_RES:::        $inOurs = $true; $hasConflicts = $true
-:::PS_RES:::        $oursBlock = @(); $theirsBlock = @(); $conflictCount++
+:::PS_RES:::        $inOurs = $true; $inTheirs = $false; $inBase = $false; $hasConflicts = $true
+:::PS_RES:::        $oursBlock = @(); $theirsBlock = @(); $baseBlock = @(); $conflictCount++
 :::PS_RES:::        $markerOursRaw = $line
 :::PS_RES:::        continue
 :::PS_RES:::    }
-:::PS_RES:::    if ($line.StartsWith("=======")) {
-:::PS_RES:::        $inOurs = $false; $inTheirs = $true
+:::PS_RES:::    if ($line.StartsWith("|||||||") -and $inOurs) {
+:::PS_RES:::        $inOurs = $false; $inBase = $true
 :::PS_RES:::        continue
 :::PS_RES:::    }
-:::PS_RES:::    if ($line.StartsWith(">>>>>>>")) {
+:::PS_RES:::    if ($line.StartsWith("=======") -and ($inOurs -or $inBase)) {
+:::PS_RES:::        $inOurs = $false; $inBase = $false; $inTheirs = $true
+:::PS_RES:::        continue
+:::PS_RES:::    }
+:::PS_RES:::    
+:::PS_RES:::    if ($inOurs) { $oursBlock += $line; continue }
+:::PS_RES:::    if ($inBase) { $baseBlock += $line; continue }
+:::PS_RES:::    if ($inTheirs -and -not $line.StartsWith(">>>>>>>")) { $theirsBlock += $line; continue }
+:::PS_RES:::
+:::PS_RES:::    if ($line.StartsWith(">>>>>>>") -and $inTheirs) {
 :::PS_RES:::        $inTheirs = $false
 :::PS_RES:::        $markerTheirsRaw = $line
 :::PS_RES:::
@@ -5677,15 +5669,9 @@ goto ConflictFileLoop
 :::PS_RES:::            continue
 :::PS_RES:::        }
 :::PS_RES:::
-:::PS_RES:::        if (Test-JsonKeyConflict $oursBlock $theirsBlock) {
-:::PS_RES:::            $merged = Merge-JsonKeys $oursBlock $theirsBlock
-:::PS_RES:::            $resolvedLines += $merged; $autoResolved++; $strategies += "json-key-merge"
-:::PS_RES:::            continue
-:::PS_RES:::        }
-:::PS_RES:::
 :::PS_RES:::        if ($SilentAutoFix) {
-:::PS_RES:::            $merged = Merge-DeduplicatedConcat $oursBlock $theirsBlock
-:::PS_RES:::            $resolvedLines += $merged; $autoResolved++; $strategies += "keep-both-dedup"
+:::PS_RES:::            $merged = Merge-SafeConcat $oursBlock $theirsBlock $ext
+:::PS_RES:::            $resolvedLines += $merged; $autoResolved++; $strategies += "silent-autofix-concat"
 :::PS_RES:::            continue
 :::PS_RES:::        }
 :::PS_RES:::
@@ -5723,7 +5709,8 @@ goto ConflictFileLoop
 :::PS_RES:::        }
 :::PS_RES:::        continue
 :::PS_RES:::    }
-:::PS_RES:::    if ($inOurs) { $oursBlock += $line } elseif ($inTheirs) { $theirsBlock += $line } else { $resolvedLines += $line }
+:::PS_RES:::    
+:::PS_RES:::    $resolvedLines += $line
 :::PS_RES:::}
 :::PS_RES:::
 :::PS_RES:::if ($hasConflicts) {
@@ -5736,7 +5723,6 @@ goto ConflictFileLoop
 :::PS_RES:::        }
 :::PS_RES:::        exit 0
 :::PS_RES:::    }
-:::PS_RES:::    $utf8NoBom = New-Object System.Text.UTF8Encoding $False
 :::PS_RES:::    [System.IO.File]::WriteAllLines($FilePath, $resolvedLines, $utf8NoBom)
 :::PS_RES:::    Write-Host "Resolved $autoResolved of $conflictCount conflicts automatically." -ForegroundColor Green
 :::PS_RES:::    if ($manualResolved -gt 0) { Write-Host "$manualResolved conflict(s) resolved manually." -ForegroundColor Yellow }
@@ -5863,9 +5849,7 @@ if "!REBASE_ACTIVE!"=="0" (
 
 echo.
 echo Manual help is required for this step.
-set "RESOLVE_NO_COMMIT=1"
 call :ResolveConflicts
-set "RESOLVE_NO_COMMIT="
 
 echo Continuing with the history update...
 call git rebase --continue 2>nul
